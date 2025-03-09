@@ -18,7 +18,7 @@ pub fn easter(year: i32) -> (i32, i32) {
 }
 
 /// True Modulus Operation
-pub fn lpr(x: f64, y: f64) -> f64 {
+fn lpr(x: f64, y: f64) -> f64 {
     let z = x % y;
     match z < 0.0 {
         true => z + y,
@@ -34,15 +34,15 @@ pub fn lpr(x: f64, y: f64) -> f64 {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Date(f64);
 impl Date {
-    fn julian(self) -> f64 {
+    pub fn julian(self) -> f64 {
         self.0
     }
-    fn from_julian(x: f64) -> Self {
+    pub fn from_julian(x: f64) -> Self {
         Date(x)
     }
 
     /// Year, Month, Day (time is Period::from_decimal(day.fract()))
-    fn calendar(self) -> (f64, f64, f64) {
+    pub fn calendar(self) -> (f64, f64, f64) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
@@ -64,7 +64,7 @@ impl Date {
 
         (y, m, d)
     }
-    fn from_calendar(x: (f64, f64, f64)) -> Self {
+    pub fn from_calendar(x: (f64, f64, f64)) -> Self {
         let (mut year, mut month, day) = x;
         if month < 3.0 {
             year -= 1.0;
@@ -90,7 +90,7 @@ impl Date {
     }
 
     /// Sunday is 0
-    fn dow(self) -> u8 {
+    pub fn dow(self) -> u8 {
         ((self.julian() + 1.5) / 7.0).fract().round() as u8
     }
 }
@@ -106,39 +106,39 @@ pub struct Period(f64);
 ///     Hour, Minute, (Second[.Subsecond]) (i.e. 11:30)
 impl Period {
     /// This is the only function that directly reads to Period
-    fn radians(self) -> f64 {
+    pub fn radians(self) -> f64 {
         self.0
     }
     /// This is the only function that directly writes to Period
     /// ALWAYS DO THIS UNDER A (TRUE) MODULO GUARD WITH LPR
-    fn from_radians(x: f64) -> Self {
+    pub fn from_radians(x: f64) -> Self {
         Period(lpr(x, std::f64::consts::TAU))
     }
 
-    fn degrees(self) -> f64 {
+    pub fn degrees(self) -> f64 {
         self.radians().to_degrees()
     }
-    fn from_degrees(x: f64) -> Self {
+    pub fn from_degrees(x: f64) -> Self {
         Period::from_radians(x.to_radians())
     }
 
-    fn decimal(self) -> f64 {
+    pub fn decimal(self) -> f64 {
         self.degrees() / 15.0 // 1 hour <-> 15 degrees, 360/24 = 15
     }
-    fn from_decimal(x: f64) -> Self {
+    pub fn from_decimal(x: f64) -> Self {
         Period::from_degrees(x * 15.0)
     }
 
     /// Hour, Minute, Second
-    fn clocktime(self) -> (u8, u8, f64) {
+    pub fn clocktime(self) -> (u8, u8, f64) {
         let y = self.decimal();
         (y.trunc() as u8, (y.fract() * 60.0).trunc() as u8, (y.fract() * 60.0).fract() * 60.0)
     }
-    fn from_clocktime(x: (u8, u8, f64)) -> Self {
+    pub fn from_clocktime(x: (u8, u8, f64)) -> Self {
         Period::from_decimal((x.0 as f64) + (((x.1 as f64) + (x.2 / 3600.0)) / 60.0))
     }
 
-    fn gst(self, date: Date) -> Self {
+    pub fn gst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
         let t = s / 36525.0;
@@ -148,7 +148,7 @@ impl Period {
         );
         Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
     }
-    fn ungst(self, date: Date) -> Self {
+    pub fn ungst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
         let t = s / 36525.0;
@@ -160,11 +160,14 @@ impl Period {
     }
 
     /// Used in the correction of timezones, which includes LST/GST
-    fn add(self, x: Self) -> Self {
+    pub fn add(self, x: Self) -> Self {
         Period::from_radians(self.radians() + x.radians())
     }
-    fn sub(self, x: Self) -> Self {
+    pub fn sub(self, x: Self) -> Self {
         Period::from_radians(self.radians() - x.radians())
+    }
+    pub fn offset_decimal(self, x: f64) -> Self {
+        Period::from_decimal(self.decimal() + x)
     }
 }
 
