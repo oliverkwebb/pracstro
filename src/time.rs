@@ -17,27 +17,6 @@ pub fn easter(year: i32) -> (i32, i32) {
     (n, p + 1)
 }
 
-#[derive(Debug, PartialEq)]
-pub struct YearMonthDate {
-    year: f64,
-    month: f64,
-    day: f64,
-}
-
-/// Days since January 0th 4713 BC
-#[derive(Debug, PartialEq)]
-pub struct JulDate(f64);
-
-#[derive(Debug, PartialEq)]
-pub struct ClockTime {
-    hour: u8,
-    minute: u8,
-    second: f64,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct DecimalHrs(f64);
-
 /// True Modulus Operation
 pub fn lpr(x: f64, y: f64) -> f64 {
     let z = x % y;
@@ -47,10 +26,24 @@ pub fn lpr(x: f64, y: f64) -> f64 {
     }
 }
 
-/// Julian Day -> Day/Month/Year
-impl From<JulDate> for YearMonthDate {
-    fn from(jday: JulDate) -> Self {
-        let j = jday.0 + 0.5;
+/// Continious Instant in time
+/// Julian Day, Epoch is Jan 0 4713 BC
+/// Properties of concern:
+///     Calendar (Year, Month, Day, etc)
+///     Julian Date
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Date(f64);
+impl Date {
+    fn julian(self) -> f64 {
+        self.0
+    }
+    fn from_julian(x: f64) -> Self {
+        Date(x)
+    }
+
+    /// Year, Month, Day (time is Period::from_decimal(day.fract()))
+    fn calendar(self) -> (f64, f64, f64) {
+        let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
         let b = if i > 2_299_160.0 {
@@ -67,19 +60,12 @@ impl From<JulDate> for YearMonthDate {
 
         let m = if g < 13.5 { g - 1.0 } else { g - 13.0 };
         let y = if m > 2.5 { d - 4716.0 } else { d - 4715.0 };
+        let d = c - e + f - (30.6001 * g).trunc();
 
-        YearMonthDate {
-            day: c - e + f - (30.6001 * g).trunc(),
-            month: m,
-            year: y,
-        }
+        (y, m, d)
     }
-}
-
-/// Day, Month, Year -> Julian Day
-impl From<YearMonthDate> for JulDate {
-    fn from(t: YearMonthDate) -> Self {
-        let (day, mut month, mut year) = (t.day, t.month, t.year);
+    fn from_calendar(x: (f64, f64, f64)) -> Self {
+        let (mut year, mut month, day) = x;
         if month < 3.0 {
             year -= 1.0;
             month += 12.0;
@@ -100,63 +86,86 @@ impl From<YearMonthDate> for JulDate {
         })
         .trunc();
 
-        JulDate(b + c + (30.6001 * (mp + 1.0)).trunc() + day + 1_720_994.5)
+        Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day + 1_720_994.5)
+    }
+
+    /// Sunday is 0
+    fn dow(self) -> u8 {
+        ((self.julian() + 1.5) / 7.0).fract().round() as u8
     }
 }
 
-impl From<ClockTime> for DecimalHrs {
-    fn from(t: ClockTime) -> Self {
-        DecimalHrs((t.hour as f64) + (((t.minute as f64) + (t.second / 3600.0)) / 60.0))
+/// Angles and Time being the most prominent use for this type
+/// Radians, [0, Tau (2pi)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Period(f64);
+/// Properties of concern:
+///     Radians
+///     Degrees
+///     Decimal Hours (i.e. 11.5)
+///     Hour, Minute, (Second[.Subsecond]) (i.e. 11:30)
+impl Period {
+    /// This is the only function that directly reads to Period
+    fn radians(self) -> f64 {
+        self.0
     }
-}
-
-impl From<DecimalHrs> for ClockTime {
-    fn from(t: DecimalHrs) -> Self {
-        ClockTime {
-            hour: t.0.trunc() as u8,
-            minute: ((t.0.fract()) * 60.0).trunc() as u8,
-            second: ((t.0.fract()) * 60.0).fract() * 60.0,
-        }
+    /// This is the only function that directly writes to Period
+    /// ALWAYS DO THIS UNDER A (TRUE) MODULO GUARD WITH LPR
+    fn from_radians(x: f64) -> Self {
+        Period(lpr(x, std::f64::consts::TAU))
     }
-}
 
-impl DecimalHrs {
-    pub fn correctz(self, tzoff: i32) -> Self {
-        DecimalHrs(lpr(self.0 + tzoff as f64, 24.0))
+    fn degrees(self) -> f64 {
+        self.radians().to_degrees()
     }
-    pub fn ucorrectz(self, tzoff: i32) -> Self {
-        DecimalHrs(lpr(self.0 - tzoff as f64, 24.0))
+    fn from_degrees(x: f64) -> Self {
+        Period::from_radians(x.to_radians())
     }
-}
 
-pub fn gst_to_dec(decimal: DecimalHrs, jd: JulDate) -> DecimalHrs {
-    let jday = jd.0;
-    let s = jday - 2451545.0;
-    let t = s / 36525.0;
-    let t0 = lpr(
-        6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)),
-        24.0,
-    );
-    DecimalHrs(lpr(decimal.0 - t0, 24.0) * 0.9972695663)
-}
+    fn decimal(self) -> f64 {
+        self.degrees() / 15.0 // 1 hour <-> 15 degrees, 360/24 = 15
+    }
+    fn from_decimal(x: f64) -> Self {
+        Period::from_degrees(x * 15.0)
+    }
 
-pub fn jdec_to_gst(decimal: DecimalHrs, jd: JulDate) -> DecimalHrs {
-    let jday = jd.0;
-    let s = jday - 2451545.0;
-    let t = s / 36525.0;
-    let t0 = lpr(
-        6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)),
-        24.0,
-    );
-    DecimalHrs(lpr(t0 + (decimal.0 * 1.002737909), 24.0))
-}
+    /// Hour, Minute, Second
+    fn clocktime(self) -> (u8, u8, f64) {
+        let y = self.decimal();
+        (y.trunc() as u8, (y.fract() * 60.0).trunc() as u8, (y.fract() * 60.0).fract() * 60.0)
+    }
+    fn from_clocktime(x: (u8, u8, f64)) -> Self {
+        Period::from_decimal((x.0 as f64) + (((x.1 as f64) + (x.2 / 3600.0)) / 60.0))
+    }
 
-pub fn gst_to_lst(gst: DecimalHrs, longit: f64) -> DecimalHrs {
-    DecimalHrs(lpr(gst.0 + (longit / 15.0), 24.0))
-}
+    fn gst(self, date: Date) -> Self {
+        let jday = date.julian();
+        let s = jday - 2451545.0;
+        let t = s / 36525.0;
+        let t0 = lpr(
+            6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)),
+            24.0,
+        );
+        Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
+    }
+    fn ungst(self, date: Date) -> Self {
+        let jday = date.julian();
+        let s = jday - 2451545.0;
+        let t = s / 36525.0;
+        let t0 = lpr(
+            6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)),
+            24.0,
+        );
+        Period::from_decimal(lpr(self.decimal() - t0, 24.0) * 0.9972695663)
+    }
 
-pub fn lst_to_gst(lst: DecimalHrs, longit: f64) -> DecimalHrs {
-    DecimalHrs(lpr(lst.0 - (longit / 15.0), 24.0))
+    /// Used in the correction of timezones, which includes LST/GST
+    fn add(self, x: Self) -> Self {
+        Period::from_radians(self.radians() + x.radians())
+    }
+    fn sub(self, x: Self) -> Self {
+        Period::from_radians(self.radians() - x.radians())
+    }
 }
 
 #[cfg(test)]
@@ -172,69 +181,54 @@ mod tests {
     #[test]
     fn test_lpr() {
         assert_eq!(lpr(-1.0, 5.0), 4.0);
+        assert_eq!(lpr(7.0, 5.0), 2.0);
     }
 
     #[test]
     fn test_julian() {
         assert_eq!(
-            YearMonthDate::from(JulDate(2_446_113.75)),
-            YearMonthDate {
-                day: 17.25,
-                month: 2.0,
-                year: 1985.0
-            }
+            Date::from_julian(2_446_113.75),
+            Date::from_calendar((1985.0, 2.0, 17.25))
         );
         assert_eq!(
-            JulDate::from(YearMonthDate {
-                day: 17.25,
-                month: 2.0,
-                year: 1985.0
-            }),
-            JulDate(2_446_113.75)
+            Date::from_julian(2_446_113.75).calendar(),
+            (1985.0, 2.0, 17.25)
         );
     }
 
     #[test]
     fn test_decimalhrs() {
         assert_eq!(
-            DecimalHrs::from(ClockTime {
-                hour: 18,
-                minute: 31,
-                second: 27.0
-            }),
-            DecimalHrs(18.516791666666666)
+            Period::from_clocktime((18, 31, 27.0)),
+            Period::from_decimal(18.516791666666666)
         );
         assert_eq!(
-            ClockTime::from(DecimalHrs(11.75)),
-            ClockTime {
-                hour: 11,
-                minute: 45,
-                second: 0.0
-            }
+            Period::from_decimal(11.75),
+            Period::from_clocktime((11, 45, 0.0))
         );
     }
 
     #[test]
     fn test_gst() {
         assert_eq!(
-            jdec_to_gst(DecimalHrs(14.614_353), JulDate(2_444_351.5)),
-            DecimalHrs(4.668119549708194)
+            Period::from_decimal(14.614_353).gst(Date::from_julian(2_444_351.5)),
+            Period::from_decimal(4.668119549708194)
         );
         assert_eq!(
-            gst_to_dec(DecimalHrs(4.668119549708194), JulDate(2_444_351.5)),
-            DecimalHrs(14.614352994461141)
+            Period::from_decimal(4.668119549708194).ungst(Date::from_julian(2_444_351.5)),
+            Period::from_decimal(14.614352994461141)
         );
     }
 
     #[test]
     fn test_lst() {
         assert_eq!(
-            gst_to_lst(DecimalHrs(4.668_119), -64.0),
-            DecimalHrs(0.4014523333333333)
+            Period::from_decimal(4.668_119).add(Period::from_degrees(-64.0)),
+            Period(0.10509997509720659)
         );
         assert_eq!(
-            lst_to_gst(DecimalHrs(0.401_453), -64.0),
-            DecimalHrs(4.668119666666667)
+            Period::from_decimal(0.401_453).sub(Period::from_degrees(-64.0)),
+            Period(1.2221108709065023)
         );
     }
 }
