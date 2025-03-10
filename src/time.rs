@@ -1,3 +1,9 @@
+//!
+//! This module contains functions for the handling and conversion of Times, Dates, and Angles.
+//! This data can be represented in two types
+//! - The `Date` type, which represents an instance in continuous time
+//! - The `Period` type, which represents anything which modulo arithmetic
+
 /// Calculate the date of easter
 pub fn easter(year: i32) -> (i32, i32) {
     let a = year % 19;
@@ -28,11 +34,11 @@ fn lpr(x: f64, y: f64) -> f64 {
 
 /// Continious Instant in time
 /// Julian Day, Epoch is Jan 0 4713 BC
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Date(f64);
 /// Properties of concern:
 ///     Calendar (Year, Month, Day, etc)
 ///     Julian Date
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct Date(f64);
 impl Date {
     pub fn julian(self) -> f64 {
         self.0
@@ -42,7 +48,7 @@ impl Date {
     }
 
     /// Year, Month, Day (time is Period::from_decimal(day.fract()))
-    pub fn calendar(self) -> (f64, f64, f64) {
+    pub fn calendar(self) -> (u32, u8, f64) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
@@ -62,10 +68,10 @@ impl Date {
         let y = if m > 2.5 { d - 4716.0 } else { d - 4715.0 };
         let d = c - e + f - (30.6001 * g).trunc();
 
-        (y, m, d)
+        (y as u32, m as u8, d)
     }
-    pub fn from_calendar(x: (f64, f64, f64)) -> Self {
-        let (mut year, mut month, day) = x;
+    pub fn from_calendar(y: u64, m: u8, d: f64) -> Self {
+        let (mut year, mut month, day): (f64, f64, f64) = (y as f64, m as f64, d);
         if month < 3.0 {
             year -= 1.0;
             month += 12.0;
@@ -129,15 +135,34 @@ impl Period {
         Period::from_degrees(x * 15.0)
     }
 
-    /// Hour, Minute, Second
-    pub fn clocktime(self) -> (u8, u8, f64) {
-        let y = self.decimal();
-        (y.trunc() as u8, (y.fract() * 60.0).trunc() as u8, (y.fract() * 60.0).fract() * 60.0)
+    pub fn longitude(self) -> f64 {
+        self.degrees() + 180.0
     }
-    pub fn from_clocktime(x: (u8, u8, f64)) -> Self {
-        Period::from_decimal((x.0 as f64) + (((x.1 as f64) + (x.2 / 3600.0)) / 60.0))
+    pub fn from_longitude(x: f64) -> Self {
+        Period::from_degrees(x - 180.0)
+    }
+    pub fn latitude(self) -> f64 {
+        (self.degrees() - 180.0) / 2.0
+    }
+    pub fn from_latitude(x: f64) -> Self {
+        Period::from_degrees((x * 2.0) + 180.0)
     }
 
+    /// Returns (Hour, Minute, Second)
+    pub fn clock(self) -> (u8, u8, f64) {
+        let y = self.decimal();
+        (
+            y.trunc() as u8,
+            (y.fract() * 60.0).trunc() as u8,
+            (y.fract() * 60.0).fract() * 60.0,
+        )
+    }
+	// Converts from clocktime
+    pub fn from_clock(h: u8, m: u8, s: f64) -> Self {
+        Period::from_decimal((h as f64) + (((m as f64) + (s / 3600.0)) / 60.0))
+    }
+
+	// Converts to siderial time
     pub fn gst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -148,6 +173,7 @@ impl Period {
         );
         Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
     }
+	// Converts from siderial time
     pub fn ungst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -159,15 +185,37 @@ impl Period {
         Period::from_decimal(lpr(self.decimal() - t0, 24.0) * 0.9972695663)
     }
 
-    /// Used in the correction of timezones, which includes LST/GST
+    /// Addition, For timezones and LST
     pub fn add(self, x: Self) -> Self {
         Period::from_radians(self.radians() + x.radians())
     }
+    /// Subtraction, For timezones and LST
     pub fn sub(self, x: Self) -> Self {
         Period::from_radians(self.radians() - x.radians())
     }
-    pub fn offset_decimal(self, x: f64) -> Self {
-        Period::from_decimal(self.decimal() + x)
+    /// Sine of Period
+    pub fn sin(self) -> f64 {
+        self.radians().sin()
+    }
+    /// Cosine of Period
+    pub fn cos(self) -> f64 {
+        self.radians().cos()
+    }
+    /// Tangent of Period
+    pub fn tan(self) -> f64 {
+        self.radians().tan()
+    }
+    /// Arcsine of Period
+    pub fn asin(x: f64) -> Self {
+        Period::from_radians(x.asin())
+    }
+    /// Arccosine of Period
+    pub fn acos(x: f64) -> Self {
+        Period::from_radians(x.acos())
+    }
+    /// Arctangent of Period
+    pub fn atan(x: f64) -> Self {
+        Period::from_radians(x.atan())
     }
 }
 
@@ -191,23 +239,23 @@ mod tests {
     fn test_julian() {
         assert_eq!(
             Date::from_julian(2_446_113.75),
-            Date::from_calendar((1985.0, 2.0, 17.25))
+            Date::from_calendar(1985, 2, 17.25)
         );
         assert_eq!(
             Date::from_julian(2_446_113.75).calendar(),
-            (1985.0, 2.0, 17.25)
+            (1985, 2, 17.25)
         );
     }
 
     #[test]
     fn test_decimalhrs() {
         assert_eq!(
-            Period::from_clocktime((18, 31, 27.0)),
+            Period::from_clock(18, 31, 27.0),
             Period::from_decimal(18.516791666666666)
         );
         assert_eq!(
             Period::from_decimal(11.75),
-            Period::from_clocktime((11, 45, 0.0))
+            Period::from_clock(11, 45, 0.0)
         );
     }
 
