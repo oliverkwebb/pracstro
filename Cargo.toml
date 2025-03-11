@@ -1,6 +1,11 @@
 [package]
 name = "pracstro"
 version = "0.1.0"
+authors = ["Oliver Webb <oliverwebb8192@gmail.com>"]
+description = "A simplistic library for astronomy"
 edition = "2021"
+license = "0BSD"
+readme = "README.md"
+keywords = ["astronomy"]
 
 [dependencies]

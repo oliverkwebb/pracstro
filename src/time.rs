@@ -4,6 +4,8 @@
 //! - The `Date` type, which represents an instance in continuous time
 //! - The `Period` type, which represents anything which modulo arithmetic
 
+use std::fmt;
+
 /// Calculate the date of easter
 pub fn easter(year: i32) -> (i32, i32) {
     let a = year % 19;
@@ -103,7 +105,7 @@ impl Date {
 
 /// Angles and Time being the most prominent use for this type
 /// Radians, [0, Tau (2pi)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Period(f64);
 /// Properties of concern:
 ///     Radians
@@ -135,19 +137,6 @@ impl Period {
         Period::from_degrees(x * 15.0)
     }
 
-    pub fn longitude(self) -> f64 {
-        self.degrees() + 180.0
-    }
-    pub fn from_longitude(x: f64) -> Self {
-        Period::from_degrees(x - 180.0)
-    }
-    pub fn latitude(self) -> f64 {
-        (self.degrees() - 180.0) / 2.0
-    }
-    pub fn from_latitude(x: f64) -> Self {
-        Period::from_degrees((x * 2.0) + 180.0)
-    }
-
     /// Returns (Hour, Minute, Second)
     pub fn clock(self) -> (u8, u8, f64) {
         let y = self.decimal();
@@ -157,12 +146,24 @@ impl Period {
             (y.fract() * 60.0).fract() * 60.0,
         )
     }
-	// Converts from clocktime
+    // Converts from clocktime
     pub fn from_clock(h: u8, m: u8, s: f64) -> Self {
         Period::from_decimal((h as f64) + (((m as f64) + (s / 3600.0)) / 60.0))
     }
 
-	// Converts to siderial time
+    pub fn degminsec(self) -> (i16, u8, f64) {
+        let y = self.degrees();
+        (
+            y.trunc() as i16,
+            (y.fract() * 60.0).trunc() as u8,
+            (y.fract() * 60.0).fract() * 60.0,
+        )
+    }
+    pub fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
+        Period::from_degrees((d as f64) + (((m as f64) + (s / 3600.0)) / 60.0))
+    }
+
+    // Converts to siderial time
     pub fn gst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -173,7 +174,7 @@ impl Period {
         );
         Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
     }
-	// Converts from siderial time
+    // Converts from siderial time
     pub fn ungst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -217,6 +218,24 @@ impl Period {
     pub fn atan(x: f64) -> Self {
         Period::from_radians(x.atan())
     }
+    pub fn inverse(self) -> Self {
+        Period::from_degrees(360.0 - self.degrees())
+    }
+}
+/// Used in testing
+impl fmt::Debug for Period {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (d, m, s) = self.degminsec();
+        // Hubble has a resolution of 0.1", this is more than sufficent
+        write!(f, "{}°{}'{:.2}\"", d, m, s)
+    }
+}
+impl PartialEq for Period {
+    fn eq(&self, other: &Self) -> bool {
+        let (d, m, _) = self.degminsec();
+        let (d2, m2, _) = other.degminsec();
+        d == d2 && m == m2
+    }
 }
 
 #[cfg(test)]
@@ -241,10 +260,7 @@ mod tests {
             Date::from_julian(2_446_113.75),
             Date::from_calendar(1985, 2, 17.25)
         );
-        assert_eq!(
-            Date::from_julian(2_446_113.75).calendar(),
-            (1985, 2, 17.25)
-        );
+        assert_eq!(Date::from_julian(2_446_113.75).calendar(), (1985, 2, 17.25));
     }
 
     #[test]
@@ -253,10 +269,7 @@ mod tests {
             Period::from_clock(18, 31, 27.0),
             Period::from_decimal(18.516791666666666)
         );
-        assert_eq!(
-            Period::from_decimal(11.75),
-            Period::from_clock(11, 45, 0.0)
-        );
+        assert_eq!(Period::from_decimal(11.75), Period::from_clock(11, 45, 0.0));
     }
 
     #[test]
