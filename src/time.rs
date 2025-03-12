@@ -6,25 +6,6 @@
 
 use std::fmt;
 
-/// Calculate the date of easter
-pub fn easter(year: i32) -> (i32, i32) {
-    let a = year % 19;
-    let b = year / 100;
-    let c = year % 100;
-    let d = b / 4;
-    let e = b % 4;
-    let f = (b + 8) / 25;
-    let g = (b - f + 1) / 3;
-    let h = ((19 * a) + b - d - g + 15) % 30;
-    let i = c / 4;
-    let k = c % 4;
-    let l = (32 + (2 * e) + (2 * i) - h - k) % 7;
-    let m = (a + (11 * h) + (22 * l)) / 451;
-    let n = (h + l - (7 * m) + 114) / 31;
-    let p = (h + l - (7 * m) + 114) % 31;
-    (n, p + 1)
-}
-
 /// True Modulus Operation
 fn lpr(x: f64, y: f64) -> f64 {
     let z = x % y;
@@ -95,6 +76,13 @@ impl Date {
         .trunc();
 
         Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day + 1_720_994.5)
+    }
+
+    pub fn unix(self) -> f64 {
+        (self.julian() - 2440587.5) * 86400.0
+    }
+    pub fn from_unix(t: f64) -> Self {
+        Date::from_julian((t / 86400.0) + 2440587.5)
     }
 
     /// Sunday is 0
@@ -186,6 +174,11 @@ impl Period {
         Period::from_decimal(lpr(self.decimal() - t0, 24.0) * 0.9972695663)
     }
 
+    pub fn fixquad(self) -> Self {
+        let a = self.degrees();
+        Period::from_degrees(a - 360.0 * (a / 360.0).floor())
+    }
+
     /// Addition, For timezones and LST
     pub fn add(self, x: Self) -> Self {
         Period::from_radians(self.radians() + x.radians())
@@ -218,6 +211,9 @@ impl Period {
     pub fn atan(x: f64) -> Self {
         Period::from_radians(x.atan())
     }
+    pub fn atan2(x: f64, y: f64) -> Self {
+        Period::from_radians(x.atan2(y))
+    }
     pub fn inverse(self) -> Self {
         Period::from_degrees(360.0 - self.degrees())
     }
@@ -241,12 +237,6 @@ impl PartialEq for Period {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_easter() {
-        assert_eq!(easter(2000), (4, 23));
-        assert_eq!(easter(2024), (3, 31));
-    }
 
     #[test]
     fn test_lpr() {

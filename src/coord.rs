@@ -1,5 +1,12 @@
 use crate::time::*;
 
+pub fn mean_obliquity_ecl(d: Date) -> Period {
+    let t = (d.julian() - 2451545.0) / 365250.0;
+    Period::from_degrees(
+        23.439_292 - ((46.815 * t + 0.0006 * (t * t) - 0.00181 * (t * t * t)) / 3600.0),
+    )
+}
+
 /// Pair of period values, Representing "How far up" and "How far round"
 ///
 /// Base Value is right ascension, and declination
@@ -66,6 +73,23 @@ impl Coord {
             false => Period::from_degrees(360.0 - hap.degrees()),
         };
         Coord::from_equatorial(ha, de, date, time, longi)
+    }
+
+    pub fn ecliptic(self, d: Date) -> (Period, Period) {
+        let (ra, de) = self.celestial();
+        let e = mean_obliquity_ecl(d);
+        let beta = Period::asin(de.sin() * e.cos() - de.cos() * e.sin() * ra.sin());
+        let y = ra.sin() * e.cos() + de.tan() * e.sin();
+        let x = ra.cos();
+        let lambda = Period::atan2(y, x).fixquad();
+        (lambda, beta)
+    }
+    pub fn from_ecliptic(lambda: Period, beta: Period, d: Date) -> Self {
+        let e = mean_obliquity_ecl(d);
+        let de = Period::asin(beta.sin() * e.cos() + beta.cos() * e.sin() * lambda.sin());
+        let ra =
+            Period::atan2(lambda.sin() * e.cos() - beta.tan() * e.sin(), lambda.cos()).fixquad();
+        Coord::from_celestial(ra, de)
     }
 
     /// Returns the angle between two objects
@@ -200,5 +224,32 @@ mod tests {
                 Period::from_degminsec(61, 26, 22.0)
             )
         );
+        assert_eq!(
+            c.riseset(
+                Date::from_calendar(1980, 8, 24.0),
+                Period::from_degrees(-90.0),
+                Period::from_degrees(0.0),
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn test_ecliptic() {
+        let star1 = Coord::from_celestial(
+            Period::from_clock(9, 34, 53.6),
+            Period::from_degminsec(19, 32, 14.2),
+        );
+        assert_eq!(
+            star1.ecliptic(Date::from_calendar(1950, 0, 1.0)),
+            (
+                Period::from_degminsec(139, 29, 10.0),
+                Period::from_degminsec(4, 48, 31.0)
+            )
+        );
+        /* assert_eq!(
+            Coord::from_ecliptic(Period::from_degminsec(139, 29, 10.0), Period::from_degminsec(4, 48, 31.0), Date::from_calendar(1950, 0, 1.0)),
+            star1
+        );*/
     }
 }

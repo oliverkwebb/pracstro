@@ -16,3 +16,9 @@ pub mod time;
 
 /// Coordinate handling
 pub mod coord;
+
+/// Solar Dynamics
+pub mod sol;
+
+/// Utility Functions
+pub mod misc;
