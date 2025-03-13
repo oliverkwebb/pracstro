@@ -136,7 +136,7 @@ impl Period {
     }
     // Converts from clocktime
     pub fn from_clock(h: u8, m: u8, s: f64) -> Self {
-        Period::from_decimal((h as f64) + (((m as f64) + (s / 3600.0)) / 60.0))
+        Period::from_decimal((h as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
     pub fn degminsec(self) -> (i16, u8, f64) {
@@ -148,7 +148,7 @@ impl Period {
         )
     }
     pub fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
-        Period::from_degrees((d as f64) + (((m as f64) + (s / 3600.0)) / 60.0))
+        Period::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
     // Converts to siderial time
@@ -257,7 +257,7 @@ mod tests {
     fn test_decimalhrs() {
         assert_eq!(
             Period::from_clock(18, 31, 27.0),
-            Period::from_decimal(18.516791666666666)
+            Period::from_decimal(18.52417)
         );
         assert_eq!(Period::from_decimal(11.75), Period::from_clock(11, 45, 0.0));
     }

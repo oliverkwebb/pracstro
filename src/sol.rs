@@ -28,6 +28,14 @@ pub fn whereis_sun(d: time::Date) -> coord::Coord {
     coord::Coord::from_celestial(l, t2)
 }
 
+/// Calculates the sun rise and set time
+///
+/// Calculating the second-level time for any altitude and weather is essentially impossible.
+/// Your altitude and temperature will effect the result far more than angular size and parallax.
+pub fn sun_rise_set(d: time::Date, lati: time::Period, longi: time::Period) -> (time::Period, time::Period) {
+	whereis_sun(d).riseset(d, lati, longi).unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -42,4 +50,14 @@ mod tests {
             )
         );
     }
+
+    // "Is this a reliable way of getting the ecliptic longitude of the sun?"
+    #[test]
+    fn test_lambdasun() {
+    	assert_eq!(
+            whereis_sun(time::Date::from_calendar(1980, 7, 27.0)).ecliptic(time::Date::from_calendar(1980, 7, 27.0)).0,
+            time::Period::from_degminsec(124, 23, 40.8)
+    	)
+    }
+
 }

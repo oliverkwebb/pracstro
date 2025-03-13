@@ -131,7 +131,7 @@ mod tests {
                     Period::from_degrees(-64.0)
                 )
                 .0,
-            Period::from_radians(1.5325395556005414) // Period::from_clock(5, 51, 44.0)
+            Period::from_clock(5, 51, 44.0)
         );
         assert_eq!(
             Coord::from_equatorial(
@@ -142,7 +142,7 @@ mod tests {
                 Period::from_degrees(-64.0)
             )
             .0,
-            Period::from_radians(4.853000580733089) // Period::from_clock(18, 32, 21.0)
+            Period::from_clock(18, 32, 21.0)
         );
     }
 
@@ -164,8 +164,8 @@ mod tests {
                 Period::from_degrees(133.94531)
             ),
             (
-                Period::from_degminsec(219, 42, 17.3),
-                Period::from_degminsec(48, 21, 43.1)
+                Period::from_degminsec(219, 35, 16.2),
+                Period::from_degminsec(48, 24, 46.1)
             )
         );
         assert_eq!(
@@ -176,8 +176,8 @@ mod tests {
                 Period::from_degrees(-1.0)
             ),
             (
-                Period::from_degminsec(249, 17, 18.2),
-                Period::from_degminsec(29, 37, 54.8)
+                Period::from_degminsec(249, 20, 18.2),
+                Period::from_degminsec(29, 28, 54.8)
             )
         );
         assert_eq!(
@@ -188,22 +188,22 @@ mod tests {
                 Period::from_degrees(-93.20801)
             ),
             (
-                Period::from_degminsec(184, 45, 12.1),
-                Period::from_degminsec(29, 45, 9.25)
+                Period::from_degminsec(184, 42, 2.3),
+                Period::from_degminsec(29, 45, 27.2)
             )
         );
-        /* assert_eq!(
+        assert_eq!(
             Coord::from_horizon(
-                Period::from_degminsec(184, 45, 12.1),
-                Period::from_degminsec(29, 45, 9.25),
+                Period::from_degminsec(184, 42, 2.3),
+                Period::from_degminsec(29, 45, 27.2),
                 Date::from_calendar(2025, 3, 11.0),
                 Period::from_clock(2, 0, 0.0),
                 Period::from_degrees(44.8714),
                 Period::from_degrees(-93.20801)
             ),
             sirius
-        );*/
-        assert_eq!(sirius.dist(arcturus), Period::from_degminsec(115, 46, 0.5));
+        );
+        assert_eq!(sirius.dist(arcturus), Period::from_degminsec(115, 55, 5.17));
     }
 
     #[test]
@@ -220,8 +220,8 @@ mod tests {
             )
             .unwrap(),
             (
-                Period::from_degminsec(214, 27, 17.0),
-                Period::from_degminsec(61, 26, 22.0)
+                Period::from_clock(14, 18, 9.0),
+                Period::from_clock(4, 6, 5.0)
             )
         );
         assert_eq!(
@@ -243,13 +243,13 @@ mod tests {
         assert_eq!(
             star1.ecliptic(Date::from_calendar(1950, 0, 1.0)),
             (
-                Period::from_degminsec(139, 29, 10.0),
-                Period::from_degminsec(4, 48, 31.0)
+                Period::from_degminsec(139, 41, 10.0),
+                Period::from_degminsec(4, 52, 31.0)
             )
         );
-        /* assert_eq!(
-            Coord::from_ecliptic(Period::from_degminsec(139, 29, 10.0), Period::from_degminsec(4, 48, 31.0), Date::from_calendar(1950, 0, 1.0)),
+        assert_eq!(
+            Coord::from_ecliptic(Period::from_degminsec(139, 41, 10.0), Period::from_degminsec(4, 52, 31.0), Date::from_calendar(1950, 0, 1.0)),
             star1
-        );*/
+        );
     }
 }
