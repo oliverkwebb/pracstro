@@ -52,43 +52,46 @@ pub struct Planet {
     w: f64,
     o: f64,
     rates: [f64; 6],
+    extra: Option<(f64, f64, f64, f64)>,
 }
 impl Planet {
     pub fn locationcart(self, d: time::Date) -> Cart {
         fn kepler(m: f64, e: f64, ee: f64) -> f64 {
-            let dM = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
-            dM / (1.0 - e * (ee.to_radians()).cos())
+            let dm = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
+            dm / (1.0 - e * (ee.to_radians()).cos())
         }
-        let T = (d.julian() - 2451545.0) / 36525.0;
-        let a = self.a + self.rates[0] * T;
-        let e = self.e + self.rates[1] * T;
-        let l = self.l + self.rates[3] * T;
-        let w = self.w + self.rates[4] * T;
-        let o = self.o + self.rates[5] * T;
-        let i = (self.i + self.rates[2] * T).to_radians();
+        let t = (d.julian() - 2451545.0) / 36525.0;
+        let a = self.a + self.rates[0] * t;
+        let e = self.e + self.rates[1] * t;
+        let l = self.l + self.rates[3] * t;
+        let w = self.w + self.rates[4] * t;
+        let o = self.o + self.rates[5] * t;
+        let i = (self.i + self.rates[2] * t).to_radians();
 
         let ww = (w - o).to_radians();
         let mut m = l - w;
-
+        if let Some((b, c, s, f)) = self.extra {
+            m = m + b * t * t + c * ((f * t).to_radians().cos()) + s * ((f * t).to_radians().sin());
+        }
         while m > 180.0 {
             m = m - 360.0;
         }
 
-        let mut E = m + 57.29578 * e * (m.to_radians().sin());
+        let mut ee = m + 57.29578 * e * (m.to_radians().sin());
         let mut de: f64 = 1.0;
         while de.abs() > 1e-7 {
-            de = kepler(m, e, E);
-            E = E + de;
+            de = kepler(m, e, ee);
+            ee = ee + de;
         }
 
-        let xp = a * ((E.to_radians()).cos() - e);
-        let yp = a * (1.0 - e * e).sqrt() * (E.to_radians().sin());
+        let xp = a * ((ee.to_radians()).cos() - e);
+        let yp = a * (1.0 - e * e).sqrt() * (ee.to_radians().sin());
 
-        let O = o.to_radians();
-        let xecl = (ww.cos() * O.cos() - ww.sin() * O.sin() * i.cos()) * xp
-            + (-ww.sin() * O.cos() - ww.cos() * O.sin() * i.cos()) * yp;
-        let yecl = (ww.cos() * O.sin() + ww.sin() * O.cos() * i.cos()) * xp
-            + (-ww.sin() * O.sin() + ww.cos() * O.cos() * i.cos()) * yp;
+        let o = o.to_radians();
+        let xecl = (ww.cos() * o.cos() - ww.sin() * o.sin() * i.cos()) * xp
+            + (-ww.sin() * o.cos() - ww.cos() * o.sin() * i.cos()) * yp;
+        let yecl = (ww.cos() * o.sin() + ww.sin() * o.cos() * i.cos()) * xp
+            + (-ww.sin() * o.sin() + ww.cos() * o.cos() * i.cos()) * yp;
         let zecl = (ww.sin() * i.sin()) * xp + (ww.cos() * i.sin()) * yp;
 
         let eps = 23.43928_f64.to_radians();
@@ -105,13 +108,31 @@ impl Planet {
             // If we aren't the earth, get the coords of the earth
             return c.celestial();
         }
-        let e = earth.locationcart(d);
+        let e = EARTH.locationcart(d);
 
         Cart(c.0 - e.0, c.1 - e.1, c.2 - e.2).celestial()
     }
 }
 
-const venus: Planet = Planet {
+pub const MERCURY: Planet = Planet {
+    number: 0,
+    a: 0.38709927,
+    e: 0.20563593,
+    i: 7.00497902,
+    l: 252.25032350,
+    w: 77.45779628,
+    o: 48.33076593,
+    rates: [
+        0.00000037,
+        0.00001906,
+        -0.00594749,
+        149472.67411175,
+        0.16047689,
+        -0.12534081,
+    ],
+    extra: None,
+};
+pub const VENUS: Planet = Planet {
     number: 1,
     a: 0.72333566,
     e: 0.00677672,
@@ -127,8 +148,9 @@ const venus: Planet = Planet {
         0.00268329,
         -0.27769418,
     ],
+    extra: None,
 };
-const earth: Planet = Planet {
+pub const EARTH: Planet = Planet {
     number: 2,
     a: 1.00000261,
     e: 0.01671123,
@@ -144,6 +166,115 @@ const earth: Planet = Planet {
         0.32327364,
         0.0,
     ],
+    extra: None,
+};
+pub const MARS: Planet = Planet {
+    number: 3,
+    a: 1.52371034,
+    e: 0.09339410,
+    i: 1.84969142,
+    l: -4.55343205,
+    w: -23.94362959,
+    o: 49.55953891,
+    rates: [
+        0.00001847,
+        0.00007882,
+        -0.00813131,
+        19140.30268499,
+        0.44441088,
+        -0.29257343,
+    ],
+    extra: None,
+};
+pub const JUPITER: Planet = Planet {
+    number: 4,
+    a: 5.20248019,
+    e: 0.04853590,
+    i: 1.29861416,
+    l: 34.33479152,
+    w: 14.27495244,
+    o: 100.29282654,
+    rates: [
+        -0.00002864,
+        0.00018026,
+        -0.00322699,
+        3034.90371757,
+        0.18199196,
+        0.13024619,
+    ],
+    extra: Some((-0.00012452, 0.06064060, -0.35635438, 38.35125000)),
+};
+pub const SATURN: Planet = Planet {
+    number: 5,
+    a: 9.54149883,
+    e: 0.05550825,
+    i: 2.49424102,
+    l: 50.07571329,
+    w: 92.86136063,
+    o: 113.63998702,
+    rates: [
+        -0.00003065,
+        -0.00032044,
+        0.00451969,
+        1222.11494724,
+        0.54179478,
+        -0.25015002,
+    ],
+    extra: Some((0.00025899, -0.13434469, 0.87320147, 38.35125000)),
+};
+pub const URANUS: Planet = Planet {
+    number: 6,
+    a: 19.18797948,
+    e: 0.04685740,
+    i: 0.77298127,
+    l: 314.20276625,
+    w: 172.43404441,
+    o: 73.96250215,
+    rates: [
+        -0.00020455,
+        -0.00001550,
+        -0.00180155,
+        428.49512595,
+        0.09266985,
+        0.05739699,
+    ],
+    extra: Some((0.00058331, -0.97731848, 0.17689245, 7.67025000)),
+};
+pub const NEPTUNE: Planet = Planet {
+    number: 7,
+    a: 30.06952752,
+    e: 0.00895439,
+    i: 1.77005520,
+    l: 304.22289287,
+    w: 46.68158724,
+    o: 131.78635853,
+    rates: [
+        0.00006447,
+        0.00000818,
+        0.00022400,
+        218.46515314,
+        0.01009938,
+        -0.00606302,
+    ],
+    extra: Some((-0.00041348, 0.68346318, -0.10162547, 7.67025000)),
+};
+pub const PLUTO: Planet = Planet {
+    number: 8,
+    a: 39.48686035,
+    e: 0.24885238,
+    i: 17.14104260,
+    l: 238.96535011,
+    w: 224.09702598,
+    o: 110.30167986,
+    rates: [
+        0.00449751,
+        0.00006016,
+        0.00000501,
+        145.18042903,
+        -0.00968827,
+        -0.00809981,
+    ],
+    extra: None,
 };
 
 #[cfg(test)]
@@ -175,10 +306,17 @@ mod tests {
     #[test]
     fn test_planet() {
         assert_eq!(
-            venus.location(time::Date::from_calendar(2025, 3, 12.0)),
+            VENUS.location(time::Date::from_calendar(2025, 3, 12.0)),
             coord::Coord::from_celestial(
-                time::Period::from_clock(0, 16, 11.5),
-                time::Period::from_degminsec(10, 52, 50.7)
+                time::Period::from_clock(0, 17, 44.5),
+                time::Period::from_degminsec(10, 54, 50.7)
+            )
+        );
+        assert_eq!(
+            JUPITER.location(time::Date::from_julian(2460748.41871)),
+            coord::Coord::from_celestial(
+                time::Period::from_clock(4, 47, 10.5),
+                time::Period::from_degminsec(22, 01, 7.7)
             )
         );
     }
