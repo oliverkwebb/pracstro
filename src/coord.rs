@@ -248,7 +248,11 @@ mod tests {
             )
         );
         assert_eq!(
-            Coord::from_ecliptic(Period::from_degminsec(139, 41, 10.0), Period::from_degminsec(4, 52, 31.0), Date::from_calendar(1950, 0, 1.0)),
+            Coord::from_ecliptic(
+                Period::from_degminsec(139, 41, 10.0),
+                Period::from_degminsec(4, 52, 31.0),
+                Date::from_calendar(1950, 0, 1.0)
+            ),
             star1
         );
     }
