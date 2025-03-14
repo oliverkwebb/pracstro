@@ -1,11 +1,15 @@
 use crate::{coord, time};
 
+/// Cartesian (Rectangular) Coordinates
+///
+/// These are used by most algorithms under the hood in this module.
 pub struct Cart(f64, f64, f64);
 impl Cart {
+    /// Conversion to Right Ascension and Declination
     pub fn celestial(self) -> coord::Coord {
         let Cart(tx, ty, tz) = self;
         let r = (tx * tx + ty * ty + tz * tz).sqrt();
-        let l = time::Period::from_radians(ty.atan2(tx));
+        let l = time::Period::atan2(ty, tx);
         let t2 = time::Period::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
 
         coord::Coord::from_celestial(l, t2)
@@ -14,8 +18,8 @@ impl Cart {
 
 /// Calculate the coordinates of the sun at a given time
 ///
-/// From https://www.celestialprogramming.com/snippets/sunPositionVsop.html
-pub fn whereis_sun(d: time::Date) -> coord::Coord {
+/// From <https://www.celestialprogramming.com/snippets/sunPositionVsop.html>
+pub fn where_is_sun(d: time::Date) -> coord::Coord {
     let t = (d.julian() - 2451545.0) / 365250.0;
     let mut y = 0.00010466965 * (0.09641690558 + 18849.22754997420 * t).cos();
     y = y + 0.00835292314 * (0.13952878991 + 12566.15169998280 * t).cos() - 0.02442699036;
@@ -33,28 +37,36 @@ pub fn whereis_sun(d: time::Date) -> coord::Coord {
     let ty = -(x * -0.000000479966 + y * 0.917482137087 + z * -0.397776982902);
     let tz = -(y * 0.397776982902 + z * 0.917482137087);
 
-    let r = (tx * tx + ty * ty + tz * tz).sqrt();
-    let l = time::Period::from_radians(ty.atan2(tx));
-    let t2 = time::Period::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
-
-    coord::Coord::from_celestial(l, t2)
+    Cart(tx, ty, tz).celestial()
 }
 
-// Ephemeris for planets uses Keplerian motion with correction for perturbations of other planets
-// Error is at most 10' for most use, well within range of wanted accuracy.
+/// Generalized Planet Structure containing keplerian orbital properties and corrections.
+///
+/// Ephemeris for planets uses Keplerian motion with correction for perturbations of other planets
+/// Error is at most 10' for most use, well within range of wanted accuracy.
 #[derive(PartialEq, Copy, Clone)]
 pub struct Planet {
-    number: u8, // Planet Number
+    /// Planet Number
+    pub number: u8,
+    /// Semi-Major Axis (AU)
     pub a: f64,
+    /// Eccentricity
     pub e: f64,
+    /// Inclination (Degrees)
     pub i: f64,
+    /// Mean longitude (Degrees)
     pub l: f64,
+    /// Longitude of the Periapsis (Degrees)
     pub w: f64,
+    /// Longitude of the ascending node (Degrees)
     pub o: f64,
-    rates: [f64; 6],
-    extra: Option<(f64, f64, f64, f64)>,
+    /// Correction rates for all 6 preceding properties.
+    pub rates: [f64; 6],
+    /// Correction values for the mean anomaly, needed in larger planets
+    pub extra: Option<(f64, f64, f64, f64)>,
 }
 impl Planet {
+    /// Returns the location of the planets as rectangular coordinates as relative to the Sun
     pub fn locationcart(self, d: time::Date) -> Cart {
         fn kepler(m: f64, e: f64, ee: f64) -> f64 {
             let dm = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
@@ -102,6 +114,7 @@ impl Planet {
         Cart(tx, ty, tz)
     }
 
+    /// Returns coordinates as subtracted from the earths coordinates
     pub fn location(self, d: time::Date) -> coord::Coord {
         let c = self.locationcart(d);
         if self.number == 2 {
@@ -114,6 +127,7 @@ impl Planet {
     }
 }
 
+/// Mercury
 pub const MERCURY: Planet = Planet {
     number: 0,
     a: 0.38709927,
@@ -132,6 +146,7 @@ pub const MERCURY: Planet = Planet {
     ],
     extra: None,
 };
+/// Venus
 pub const VENUS: Planet = Planet {
     number: 1,
     a: 0.72333566,
@@ -150,6 +165,7 @@ pub const VENUS: Planet = Planet {
     ],
     extra: None,
 };
+/// Earth (Technically the Earth-Moon Barycenter)
 pub const EARTH: Planet = Planet {
     number: 2,
     a: 1.00000261,
@@ -168,6 +184,7 @@ pub const EARTH: Planet = Planet {
     ],
     extra: None,
 };
+/// Mars
 pub const MARS: Planet = Planet {
     number: 3,
     a: 1.52371034,
@@ -186,6 +203,7 @@ pub const MARS: Planet = Planet {
     ],
     extra: None,
 };
+/// Jupiter
 pub const JUPITER: Planet = Planet {
     number: 4,
     a: 5.20248019,
@@ -204,6 +222,7 @@ pub const JUPITER: Planet = Planet {
     ],
     extra: Some((-0.00012452, 0.06064060, -0.35635438, 38.35125000)),
 };
+/// Saturn
 pub const SATURN: Planet = Planet {
     number: 5,
     a: 9.54149883,
@@ -222,6 +241,7 @@ pub const SATURN: Planet = Planet {
     ],
     extra: Some((0.00025899, -0.13434469, 0.87320147, 38.35125000)),
 };
+/// Uranus
 pub const URANUS: Planet = Planet {
     number: 6,
     a: 19.18797948,
@@ -240,6 +260,7 @@ pub const URANUS: Planet = Planet {
     ],
     extra: Some((0.00058331, -0.97731848, 0.17689245, 7.67025000)),
 };
+/// Neptune
 pub const NEPTUNE: Planet = Planet {
     number: 7,
     a: 30.06952752,
@@ -258,6 +279,7 @@ pub const NEPTUNE: Planet = Planet {
     ],
     extra: Some((-0.00041348, 0.68346318, -0.10162547, 7.67025000)),
 };
+/// Pluto
 pub const PLUTO: Planet = Planet {
     number: 8,
     a: 39.48686035,
@@ -296,7 +318,7 @@ mod tests {
     #[test]
     fn test_lambdasun() {
         assert_eq!(
-            whereis_sun(time::Date::from_calendar(1980, 7, 27.0))
+            where_is_sun(time::Date::from_calendar(1980, 7, 27.0))
                 .ecliptic(time::Date::from_calendar(1980, 7, 27.0))
                 .0,
             time::Period::from_degminsec(124, 23, 40.8)

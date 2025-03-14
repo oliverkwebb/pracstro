@@ -1,5 +1,11 @@
+//! Coordinate handling
+//!
+//! This module contains one type, [`Coord`]. That has methods to convert two and from several
+//! different coordinate systems.
+
 use crate::time::*;
 
+/// Gets the mean obliquity of the ecliptic at a certain date
 pub fn mean_obliquity_ecl(d: Date) -> Period {
     let t = (d.julian() - 2451545.0) / 365250.0;
     Period::from_degrees(
@@ -23,6 +29,7 @@ impl Coord {
     pub fn celestial(self) -> (Period, Period) {
         (self.0, self.1)
     }
+    /// Right Ascension and Declination
     pub fn from_celestial(x: Period, y: Period) -> Self {
         Coord(x, y)
     }
@@ -32,6 +39,7 @@ impl Coord {
         let (ra, de) = self.celestial();
         (time.gst(date).add(longi).sub(ra), de)
     }
+    /// Hour angle and Declination, dependent on longitude and time
     pub fn from_equatorial(
         ha: Period,
         de: Period,
@@ -42,6 +50,7 @@ impl Coord {
         Coord::from_celestial(time.gst(date).add(longi).sub(ha), de)
     }
 
+    /// Azimuth and Altitude, dependent on longitude, Latitude and time
     pub fn horizon(
         self,
         date: Date,
@@ -58,6 +67,7 @@ impl Coord {
         };
         (azi, alt)
     }
+    /// Azimuth and Altitude, dependent on longitude, Latitude and time
     pub fn from_horizon(
         azi: Period,
         alt: Period,
@@ -75,20 +85,21 @@ impl Coord {
         Coord::from_equatorial(ha, de, date, time, longi)
     }
 
+    /// Used in solar calculations, based on the plane of the orbit of the earth
     pub fn ecliptic(self, d: Date) -> (Period, Period) {
         let (ra, de) = self.celestial();
         let e = mean_obliquity_ecl(d);
         let beta = Period::asin(de.sin() * e.cos() - de.cos() * e.sin() * ra.sin());
         let y = ra.sin() * e.cos() + de.tan() * e.sin();
         let x = ra.cos();
-        let lambda = Period::atan2(y, x).fixquad();
+        let lambda = Period::atan2(y, x);
         (lambda, beta)
     }
+    /// Used in solar calculations, based on the plane of the orbit of the earth
     pub fn from_ecliptic(lambda: Period, beta: Period, d: Date) -> Self {
         let e = mean_obliquity_ecl(d);
         let de = Period::asin(beta.sin() * e.cos() + beta.cos() * e.sin() * lambda.sin());
-        let ra =
-            Period::atan2(lambda.sin() * e.cos() - beta.tan() * e.sin(), lambda.cos()).fixquad();
+        let ra = Period::atan2(lambda.sin() * e.cos() - beta.tan() * e.sin(), lambda.cos());
         Coord::from_celestial(ra, de)
     }
 

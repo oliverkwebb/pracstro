@@ -1,8 +1,10 @@
+//! # Time, Date, and Angle Handling
 //!
 //! This module contains functions for the handling and conversion of Times, Dates, and Angles.
-//! This data can be represented in two types
-//! - The `Date` type, which represents an instance in continuous time
-//! - The `Period` type, which represents anything which modulo arithmetic
+//!
+//! This data can be represented in two types:
+//! - The [`Period`] type, which represents anything modulo arithmetic should be used to handle
+//! - The [`Date`] type, which represents an instant in continuous time
 
 use std::fmt;
 
@@ -16,6 +18,7 @@ fn lpr(x: f64, y: f64) -> f64 {
 }
 
 /// Continious Instant in time
+///
 /// Julian Day, Epoch is Jan 0 4713 BC
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Date(f64);
@@ -23,14 +26,20 @@ pub struct Date(f64);
 ///     Calendar (Year, Month, Day, etc)
 ///     Julian Date
 impl Date {
+    /// Direct interface to type
+    ///
+    /// This is the only function that should directly read the fields of the type
     pub fn julian(self) -> f64 {
         self.0
     }
+    /// Direct interface to type
+    ///
+    /// This is the only function that should directly write the fields of the type
     pub fn from_julian(x: f64) -> Self {
         Date(x)
     }
 
-    /// Year, Month, Day (time is Period::from_decimal(day.fract()))
+    /// Returns Year, Month, Day (time is Period::from_decimal(day.fract()))
     pub fn calendar(self) -> (u32, u8, f64) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
@@ -53,6 +62,7 @@ impl Date {
 
         (y as u32, m as u8, d)
     }
+    /// Takes Year, Month, and Day
     pub fn from_calendar(y: u64, m: u8, d: f64) -> Self {
         let (mut year, mut month, day): (f64, f64, f64) = (y as f64, m as f64, d);
         if month < 3.0 {
@@ -78,9 +88,11 @@ impl Date {
         Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day + 1_720_994.5)
     }
 
+    /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub fn unix(self) -> f64 {
         (self.julian() - 2440587.5) * 86400.0
     }
+    /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub fn from_unix(t: f64) -> Self {
         Date::from_julian((t / 86400.0) + 2440587.5)
     }
@@ -101,7 +113,9 @@ pub struct Period(f64);
 ///     Decimal Hours (i.e. 11.5)
 ///     Hour, Minute, (Second[.Subsecond]) (i.e. 11:30)
 impl Period {
-    /// This is the only function that directly reads to Period
+    /// Direct interface to type
+    ///
+    /// This is the only function that should directly access the fields of the type
     pub fn radians(self) -> f64 {
         self.0
     }
@@ -111,16 +125,21 @@ impl Period {
         Period(lpr(x, std::f64::consts::TAU))
     }
 
+    /// Wrapper around .to_degrees()
     pub fn degrees(self) -> f64 {
         self.radians().to_degrees()
     }
+    /// Wrapper around .from_degrees()
+
     pub fn from_degrees(x: f64) -> Self {
         Period::from_radians(x.to_radians())
     }
 
+    /// Wrapper around `/ 15`
     pub fn decimal(self) -> f64 {
         self.degrees() / 15.0 // 1 hour <-> 15 degrees, 360/24 = 15
     }
+    /// Wrapper around `* 15`
     pub fn from_decimal(x: f64) -> Self {
         Period::from_degrees(x * 15.0)
     }
@@ -134,11 +153,12 @@ impl Period {
             (y.fract() * 60.0).fract() * 60.0,
         )
     }
-    // Converts from clocktime
+    /// Converts from clocktime
     pub fn from_clock(h: u8, m: u8, s: f64) -> Self {
         Period::from_decimal((h as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
+    /// Converts in a similar fashion to clock time
     pub fn degminsec(self) -> (i16, u8, f64) {
         let y = self.degrees();
         (
@@ -147,11 +167,12 @@ impl Period {
             (y.fract() * 60.0).fract() * 60.0,
         )
     }
+    /// Identical to from_clock in math
     pub fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
         Period::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
-    // Converts to siderial time
+    /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
     pub fn gst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -162,7 +183,7 @@ impl Period {
         );
         Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
     }
-    // Converts from siderial time
+    /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
     pub fn ungst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -172,11 +193,6 @@ impl Period {
             24.0,
         );
         Period::from_decimal(lpr(self.decimal() - t0, 24.0) * 0.9972695663)
-    }
-
-    pub fn fixquad(self) -> Self {
-        let a = self.degrees();
-        Period::from_degrees(a - 360.0 * (a / 360.0).floor())
     }
 
     /// Addition, For timezones and LST
@@ -199,21 +215,23 @@ impl Period {
     pub fn tan(self) -> f64 {
         self.radians().tan()
     }
-    /// Arcsine of Period
+    /// Period from Arcsine
     pub fn asin(x: f64) -> Self {
         Period::from_radians(x.asin())
     }
-    /// Arccosine of Period
+    /// Period from Arccosine
     pub fn acos(x: f64) -> Self {
         Period::from_radians(x.acos())
     }
-    /// Arctangent of Period
+    /// Period from 1-argument Arctangent
     pub fn atan(x: f64) -> Self {
         Period::from_radians(x.atan())
     }
+    /// Period from 2-argument Arctangent
     pub fn atan2(x: f64, y: f64) -> Self {
         Period::from_radians(x.atan2(y))
     }
+    /// Reverses the angle
     pub fn inverse(self) -> Self {
         Period::from_degrees(360.0 - self.degrees())
     }
