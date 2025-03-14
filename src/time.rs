@@ -5,10 +5,15 @@
 //! This data can be represented in two types:
 //! - The [`Period`] type, which represents anything modulo arithmetic should be used to handle
 //! - The [`Date`] type, which represents an instant in continuous time
+//!
+//! ```rust
+//!	use pracstro::*;
+//! time::Date::from_calendar(2024, 06, 30.0).julian(); // Gets the julian date at 2024-06-30
+//! ```
 
 use std::fmt;
 
-/// True Modulus Operation
+/// True Modulus Operation, Least Positive Residue
 fn lpr(x: f64, y: f64) -> f64 {
     let z = x % y;
     match z < 0.0 {
@@ -17,7 +22,7 @@ fn lpr(x: f64, y: f64) -> f64 {
     }
 }
 
-/// Continious Instant in time
+/// Continuous Instant in Time
 ///
 /// Julian Day, Epoch is Jan 0 4713 BC
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -40,6 +45,8 @@ impl Date {
     }
 
     /// Returns Year, Month, Day (time is Period::from_decimal(day.fract()))
+    ///
+    /// Algorithm from Practical Astronomy with Your Calculator
     pub fn calendar(self) -> (u32, u8, f64) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
@@ -63,6 +70,8 @@ impl Date {
         (y as u32, m as u8, d)
     }
     /// Takes Year, Month, and Day
+    ///
+    /// Algorithm from Practical Astronomy with Your Calculator
     pub fn from_calendar(y: u64, m: u8, d: f64) -> Self {
         let (mut year, mut month, day): (f64, f64, f64) = (y as f64, m as f64, d);
         if month < 3.0 {
@@ -95,11 +104,6 @@ impl Date {
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub fn from_unix(t: f64) -> Self {
         Date::from_julian((t / 86400.0) + 2440587.5)
-    }
-
-    /// Sunday is 0
-    pub fn dow(self) -> u8 {
-        ((self.julian() + 1.5) / 7.0).fract().round() as u8
     }
 }
 
@@ -173,6 +177,8 @@ impl Period {
     }
 
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
+	///
+    /// Algorithm from Practical Astronomy with Your Calculator
     pub fn gst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;
@@ -184,6 +190,8 @@ impl Period {
         Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
     }
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
+	///
+    /// Algorithm from Practical Astronomy with Your Calculator
     pub fn ungst(self, date: Date) -> Self {
         let jday = date.julian();
         let s = jday - 2451545.0;

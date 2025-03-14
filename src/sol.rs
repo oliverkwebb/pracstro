@@ -1,3 +1,4 @@
+//! Solar Dynamics and handling of planets orbits
 use crate::{coord, time};
 
 /// Cartesian (Rectangular) Coordinates
@@ -67,6 +68,8 @@ pub struct Planet {
 }
 impl Planet {
     /// Returns the location of the planets as rectangular coordinates as relative to the Sun
+	///
+	/// From <>
     pub fn locationcart(self, d: time::Date) -> Cart {
         fn kepler(m: f64, e: f64, ee: f64) -> f64 {
             let dm = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
@@ -126,6 +129,8 @@ impl Planet {
         Cart(c.0 - e.0, c.1 - e.1, c.2 - e.2).celestial()
     }
 }
+
+// Numbers from https://ssd.jpl.nasa.gov/planets/approx_pos.html
 
 /// Mercury
 pub const MERCURY: Planet = Planet {
@@ -306,7 +311,7 @@ mod tests {
     #[test]
     fn test_sunpos() {
         assert_eq!(
-            whereis_sun(time::Date::from_julian(2268932.541667)),
+            where_is_sun(time::Date::from_julian(2268932.541667)),
             coord::Coord::from_celestial(
                 time::Period::from_degrees(298.49306),
                 time::Period::from_degrees(-20.91664)

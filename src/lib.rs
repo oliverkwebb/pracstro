@@ -15,6 +15,17 @@
 //! This library started as an attempt to implement the algorithms from *Practical astronomy with Your Calculator*,
 //! but branched out into different techniques.
 //!
+//! ```rust
+//! use pracstro::*;
+//! let now_date = time::Date::from_calendar(2025, 4, 16.0);
+//! let now_time = time::Period::from_clock(19, 41, 11.0);
+//! let my_latitude = time::Period::from_degrees(30.5);
+//! let my_longitude = time::Period::from_degrees(-110.0);
+//! sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude); // Get the horizonal coordinates of Venus
+//! moon::MOON.phase(now_date).0; // The illuminated fraction of the moons surface
+//! time::Period::from_degrees(120.0).clock(); // 16h00m00s
+//! ```
+//!
 //! # Structure
 //! This library consists of 4 main modules, which build upon the ones before them:
 //! 1. [`time`], which contains functions for conversion and handling of times and dates to and from different formats
@@ -29,19 +40,17 @@
 //! - [`Planet`](sol::Planet) - A planet and its orbital properties, along with properties required for orbital correction.
 //! - [`Moon`](moon::Moon) - The moons orbital properties at a epoch.
 //!
-//! These types have methods to get the properties of this data.
-//!
+//! These types have methods to get the properties of this data. Primarily in pairs of methods that convert to/from a certain
+//! representation of that data. Although lone methods that get certain data for a type do exist.
 //! ```rust
-//! sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude) // Get the horizonal coordinates of Venus
-//! time::Period::from_degrees(120.0).clock() // 16h00m00s
-//! moon::MOON.phase(now_date).0 // The illuminated fraction of the moons surface
+//! use pracstro::*;
+//! time::Period::from_radians(time::Period::from_decimal(16.0).radians()).clock();
 //! ```
 
 pub mod time;
 
 pub mod coord;
 
-/// Solar Dynamics
 pub mod sol;
 
 /// Lunar Dynamics

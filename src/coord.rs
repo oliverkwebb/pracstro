@@ -1,7 +1,11 @@
 //! Coordinate handling
 //!
 //! This module contains one type, [`Coord`]. That has methods to convert two and from several
-//! different coordinate systems.
+//! different coordinate systems. Mainly:
+//! - Celestial (Right Ascension, Declination)
+//! - Equatorial (Hour Angle, Declination)
+//!	- Horizon (Azimuth, Altitude)
+//! - Ecliptic (Ecliptic Latitude, Ecliptic Longitude)
 
 use crate::time::*;
 
@@ -23,7 +27,6 @@ pub struct Coord(Period, Period);
 /// - Equatorial (Hour Angle, Declination)
 ///	- Horizon (Azimuth, Altitude)
 /// - Ecliptic (Ecliptic Latitude, Ecliptic Longitude)
-/// The book also specifies Galactic Coordinates, but never uses them
 impl Coord {
     /// Right Ascension and Declination
     pub fn celestial(self) -> (Period, Period) {
@@ -51,6 +54,8 @@ impl Coord {
     }
 
     /// Azimuth and Altitude, dependent on longitude, Latitude and time
+    ///
+    /// From Practical Astronomy with Your Calculator
     pub fn horizon(
         self,
         date: Date,
@@ -68,6 +73,8 @@ impl Coord {
         (azi, alt)
     }
     /// Azimuth and Altitude, dependent on longitude, Latitude and time
+    ///
+    /// From Practical Astronomy with Your Calculator
     pub fn from_horizon(
         azi: Period,
         alt: Period,
@@ -86,6 +93,8 @@ impl Coord {
     }
 
     /// Used in solar calculations, based on the plane of the orbit of the earth
+    ///
+    /// From Practical Astronomy with Your Calculator
     pub fn ecliptic(self, d: Date) -> (Period, Period) {
         let (ra, de) = self.celestial();
         let e = mean_obliquity_ecl(d);
@@ -96,6 +105,8 @@ impl Coord {
         (lambda, beta)
     }
     /// Used in solar calculations, based on the plane of the orbit of the earth
+    ///
+    /// From Practical Astronomy with Your Calculator
     pub fn from_ecliptic(lambda: Period, beta: Period, d: Date) -> Self {
         let e = mean_obliquity_ecl(d);
         let de = Period::asin(beta.sin() * e.cos() + beta.cos() * e.sin() * lambda.sin());
@@ -109,6 +120,8 @@ impl Coord {
         Period::acos(d1.sin() * d2.sin() + d1.cos() * d2.cos() * a1.sub(a2).cos())
     }
     /// Returns (Rise, Set) UT, This function will fail for locations in the sky that never appear over the horizon
+    ///
+    /// From Practical Astronomy with Your Calculator
     pub fn riseset(self, date: Date, lati: Period, longi: Period) -> Option<(Period, Period)> {
         let (ra, de) = self.celestial();
         let ar = Period::acos(de.sin() / lati.cos());
@@ -228,12 +241,11 @@ mod tests {
                 Date::from_calendar(1980, 8, 24.0),
                 Period::from_degrees(30.0),
                 Period::from_degrees(64.0)
-            )
-            .unwrap(),
-            (
+            ),
+            Some((
                 Period::from_clock(14, 18, 9.0),
                 Period::from_clock(4, 6, 5.0)
-            )
+            ))
         );
         assert_eq!(
             c.riseset(

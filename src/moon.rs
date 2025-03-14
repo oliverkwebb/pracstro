@@ -39,6 +39,8 @@ pub const MOON: Moon = Moon {
 
 impl Moon {
     /// Gets a ton of information about the moon that is used by other functions
+    ///
+    /// From moontool.c by John Walker
     pub fn mooninfo(self, d: time::Date) -> (f64, coord::Coord, f64) {
         fn fixangle(a: f64) -> f64 {
             a - 360.0 * (a / 360.0).floor()
