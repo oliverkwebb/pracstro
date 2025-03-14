@@ -1,22 +1,6 @@
 //! Solar Dynamics and handling of planets orbits
 use crate::{coord, time};
 
-/// Cartesian (Rectangular) Coordinates
-///
-/// These are used by most algorithms under the hood in this module.
-pub struct Cart(f64, f64, f64);
-impl Cart {
-    /// Conversion to Right Ascension and Declination
-    pub fn celestial(self) -> coord::Coord {
-        let Cart(tx, ty, tz) = self;
-        let r = (tx * tx + ty * ty + tz * tz).sqrt();
-        let l = time::Period::atan2(ty, tx);
-        let t2 = time::Period::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
-
-        coord::Coord::from_celestial(l, t2)
-    }
-}
-
 /// Calculate the coordinates of the sun at a given time
 ///
 /// From <https://www.celestialprogramming.com/snippets/sunPositionVsop.html>
@@ -38,7 +22,7 @@ pub fn where_is_sun(d: time::Date) -> coord::Coord {
     let ty = -(x * -0.000000479966 + y * 0.917482137087 + z * -0.397776982902);
     let tz = -(y * 0.397776982902 + z * 0.917482137087);
 
-    Cart(tx, ty, tz).celestial()
+    coord::Coord::from_cartesian(tx, ty, tz)
 }
 
 /// Generalized Planet Structure containing keplerian orbital properties and corrections.
@@ -70,7 +54,7 @@ impl Planet {
     /// Returns the location of the planets as rectangular coordinates as relative to the Sun
 	///
 	/// From <>
-    pub fn locationcart(self, d: time::Date) -> Cart {
+    pub fn locationcart(self, d: time::Date) -> (f64, f64, f64) {
         fn kepler(m: f64, e: f64, ee: f64) -> f64 {
             let dm = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
             dm / (1.0 - e * (ee.to_radians()).cos())
@@ -114,7 +98,7 @@ impl Planet {
         let ty = eps.cos() * yecl - eps.sin() * zecl;
         let tz = eps.sin() * yecl + eps.cos() * zecl;
 
-        Cart(tx, ty, tz)
+        (tx, ty, tz)
     }
 
     /// Returns coordinates as subtracted from the earths coordinates
@@ -122,11 +106,11 @@ impl Planet {
         let c = self.locationcart(d);
         if self.number == 2 {
             // If we aren't the earth, get the coords of the earth
-            return c.celestial();
+            return coord::Coord::from_cartesian(c.0, c.1, c.2)
         }
         let e = EARTH.locationcart(d);
 
-        Cart(c.0 - e.0, c.1 - e.1, c.2 - e.2).celestial()
+        coord::Coord::from_cartesian(c.0 - e.0, c.1 - e.1, c.2 - e.2)
     }
 }
 
