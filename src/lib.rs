@@ -20,5 +20,8 @@ pub mod coord;
 /// Solar Dynamics
 pub mod sol;
 
+/// Lunar Dynamics
+pub mod moon;
+
 /// Utility Functions
 pub mod misc;

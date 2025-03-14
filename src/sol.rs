@@ -45,12 +45,12 @@ pub fn whereis_sun(d: time::Date) -> coord::Coord {
 #[derive(PartialEq, Copy, Clone)]
 pub struct Planet {
     number: u8, // Planet Number
-    a: f64,
-    e: f64,
-    i: f64,
-    l: f64,
-    w: f64,
-    o: f64,
+    pub a: f64,
+    pub e: f64,
+    pub i: f64,
+    pub l: f64,
+    pub w: f64,
+    pub o: f64,
     rates: [f64; 6],
     extra: Option<(f64, f64, f64, f64)>,
 }
