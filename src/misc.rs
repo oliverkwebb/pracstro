@@ -12,7 +12,7 @@ pub fn kepler(mut m: f64, ecc: f64) -> f64 {
         delta = e - ecc * e.sin() - m;
         e -= delta / (1.0 - ecc * e.cos());
     }
-    return e;
+    e
 }
 
 /// Calculate the date of Easter

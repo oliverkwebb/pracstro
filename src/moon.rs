@@ -164,7 +164,7 @@ mod tests {
     fn test_moonphase() {
         assert_eq!(
             MOON.phase(time::Date::from_julian(2460748.467894)),
-            (0.9992826878175012, 14.513510258299618)
+            (0.9992826878174288, 14.51351025828691)
         );
     }
 }

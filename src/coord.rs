@@ -4,29 +4,40 @@
 //! different coordinate systems. Mainly:
 //! - Celestial (Right Ascension, Declination)
 //! - Equatorial (Hour Angle, Declination)
-//!	- Horizon (Azimuth, Altitude)
-//! - Ecliptic (Ecliptic Latitude, Ecliptic Longitude)
+//! - Horizon (Azimuth, Altitude)
+//! - Ecliptic (Beta, Lambda)
+//!
+//! This type also contains algorithms for converting from Cartesian (rectangular) coordinates, rise and set times, distance between angles, etc.
 
 use crate::time::*;
 
 /// Gets the mean obliquity of the ecliptic at a certain date
 pub fn mean_obliquity_ecl(d: Date) -> Period {
-    let t = (d.julian() - 2451545.0) / 365250.0;
+    let t = d.centuries();
     Period::from_degrees(
         23.439_292 - ((46.815 * t + 0.0006 * (t * t) - 0.00181 * (t * t * t)) / 3600.0),
     )
 }
 
-/// Pair of period values, Representing "How far up" and "How far round"
-///
-/// Base Value is right ascension, and declination
+/**
+Pair of angles, Representing "How far up" and "How far round"
+
+| Property          | Latitude          | Longitude           | Depends On                      | To Method              | From Method                 |
+|-------------------|-------------------|---------------------|---------------------------------|------------------------|-----------------------------|
+| Celestial         | Declination (δ)   | Right Ascension (α) |                                 | [`Coord::celestial()`] | [`Coord::from_celestial()`] |
+| Equatorial        | Declination (δ)   | Hour Angle (h)      | Date, Time, Longitude           | [`Coord::equatorial()`]| [`Coord::from_equatorial()`]|
+| Horizontal        | Altitude (a)      | Azimuth (A)         | Date, Time, Latitude, Longitude | [`Coord::horizon()`]   | [`Coord::from_horizon()`]   |
+| Ecliptic          | Ecl. Latitude (β) | Ecl. Longitude (λ)  | Date[^1]                        | [`Coord::ecliptic()`]  | [`Coord::from_ecliptic()`]  |
+| Cartesian         | N/A (3D) system   | N/A (3D system)     | Distance                        |                        | [`Coord::from_cartesian()`] |
+
+Additional Methods:
+* Distance between coordinates: [`Coord::dist()`]
+* Rise and set times of a coordinate in the sky [`Coord::riseset()`]
+
+[^1]: The plane of the ecliptic varies slightly with perturbations in the orbit and inclination of the earth.
+*/
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Coord(Period, Period);
-/// Interfaces:
-/// - Celestial (Right Ascension, Declination)
-/// - Equatorial (Hour Angle, Declination)
-///	- Horizon (Azimuth, Altitude)
-/// - Ecliptic (Ecliptic Latitude, Ecliptic Longitude)
 impl Coord {
     /// Right Ascension and Declination
     pub fn celestial(self) -> (Period, Period) {
@@ -40,7 +51,7 @@ impl Coord {
     /// Hour angle and Declination, dependent on longitude and time
     pub fn equatorial(self, date: Date, time: Period, longi: Period) -> (Period, Period) {
         let (ra, de) = self.celestial();
-        (time.gst(date).add(longi).sub(ra), de)
+        (time.gst(date) + longi - ra, de)
     }
     /// Hour angle and Declination, dependent on longitude and time
     pub fn from_equatorial(
@@ -50,12 +61,12 @@ impl Coord {
         time: Period,
         longi: Period,
     ) -> Self {
-        Coord::from_celestial(time.gst(date).add(longi).sub(ha), de)
+        Coord::from_celestial(time.gst(date) + longi - ha, de)
     }
 
     /// Azimuth and Altitude, dependent on longitude, Latitude and time
     ///
-    /// From Practical Astronomy with Your Calculator
+    /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn horizon(
         self,
         date: Date,
@@ -74,7 +85,7 @@ impl Coord {
     }
     /// Azimuth and Altitude, dependent on longitude, Latitude and time
     ///
-    /// From Practical Astronomy with Your Calculator
+    /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn from_horizon(
         azi: Period,
         alt: Period,
@@ -94,7 +105,7 @@ impl Coord {
 
     /// Used in solar calculations, based on the plane of the orbit of the earth
     ///
-    /// From Practical Astronomy with Your Calculator
+    /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn ecliptic(self, d: Date) -> (Period, Period) {
         let (ra, de) = self.celestial();
         let e = mean_obliquity_ecl(d);
@@ -106,7 +117,7 @@ impl Coord {
     }
     /// Used in solar calculations, based on the plane of the orbit of the earth
     ///
-    /// From Practical Astronomy with Your Calculator
+    /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn from_ecliptic(lambda: Period, beta: Period, d: Date) -> Self {
         let e = mean_obliquity_ecl(d);
         let de = Period::asin(beta.sin() * e.cos() + beta.cos() * e.sin() * lambda.sin());
@@ -129,7 +140,7 @@ impl Coord {
     /// Returns the angle between two objects
     pub fn dist(self, from: Self) -> Period {
         let ((a1, d1), (a2, d2)) = (self.celestial(), from.celestial());
-        Period::acos(d1.sin() * d2.sin() + d1.cos() * d2.cos() * a1.sub(a2).cos())
+        Period::acos(d1.sin() * d2.sin() + d1.cos() * d2.cos() * (a1 - a2).cos())
     }
     /// Returns (Rise, Set) UT, This function will fail for locations in the sky that never appear over the horizon
     ///
@@ -141,8 +152,8 @@ impl Coord {
         if h.radians().is_nan() || ar.radians().is_nan() {
             return None;
         }
-        let lsts = ra.sub(h).sub(longi).ungst(date);
-        let lstr = ra.add(h).sub(longi).ungst(date);
+        let lsts = (ra - h - longi).ungst(date);
+        let lstr = (ra + h - longi).ungst(date);
         Some((lsts, lstr))
     }
 }
