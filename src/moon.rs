@@ -126,9 +126,9 @@ impl Moon {
         self.mooninfo(d).1
     }
 
-	/// Returns the distance to the moon in kilometers
+    /// Returns the distance to the moon in kilometers
     pub fn distance(self, d: time::Date) -> f64 {
-    	self.mooninfo(d).2
+        self.mooninfo(d).2
     }
 }
 
@@ -175,9 +175,9 @@ mod tests {
 
     #[test]
     fn test_moondist() {
-    	assert_eq!(
-    		MOON.distance(time::Date::from_julian(2460748.467894)),
-    		400409.3239036367
-    	);
+        assert_eq!(
+            MOON.distance(time::Date::from_julian(2460748.467894)),
+            400409.3239036367
+        );
     }
 }

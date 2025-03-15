@@ -351,9 +351,12 @@ impl Date {
     ///
     /// Since this function relies on SystemTime and duration_since, it does not work for dates before 1970.
     pub fn now() -> Self {
-    	use std::time::{SystemTime,UNIX_EPOCH};
-		let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("Expected pre-1970-01-01 date").as_secs() as f64;
-		Date::from_unix(now)
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Expected pre-1970-01-01 date")
+            .as_secs() as f64;
+        Date::from_unix(now)
     }
 }
 

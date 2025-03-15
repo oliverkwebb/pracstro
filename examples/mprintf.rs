@@ -1,4 +1,4 @@
-use pracstro::{moon,time};
+use pracstro::{moon, time};
 
 const HALFMON: f64 = 14.76529434;
 const EMOJIS: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
@@ -29,6 +29,11 @@ fn phaseidx(ilumfrac: f64, mage: f64) -> usize {
 }
 
 fn main() {
-	let p = moon::MOON.phase(time::Date::now());
-    println!("{} {} ({:.2}%)", PNAMES[phaseidx(p.0, p.1)], EMOJIS[phaseidx(p.0, p.1)], p.0 * 100.0);
+    let p = moon::MOON.phase(time::Date::now());
+    println!(
+        "{} {} ({:.2}%)",
+        PNAMES[phaseidx(p.0, p.1)],
+        EMOJIS[phaseidx(p.0, p.1)],
+        p.0 * 100.0
+    );
 }

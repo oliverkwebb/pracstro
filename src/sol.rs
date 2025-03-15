@@ -124,14 +124,14 @@ impl Planet {
         let c = self.locationcart(d);
         if self.number == 2 {
             // If we aren't the earth, get the coords of the earth
-            return coord::Coord::default()
+            return coord::Coord::default();
         }
         let e = EARTH.locationcart(d);
 
         coord::Coord::from_cartesian(c.0 - e.0, c.1 - e.1, c.2 - e.2)
     }
 
-	/// Returns distance in AU
+    /// Returns distance in AU
     pub fn distance(&self, d: time::Date) -> f64 {
         if self.number == 2 {
             // If we aren't the earth, get the coords of the earth
@@ -144,7 +144,6 @@ impl Planet {
         (tx * tx + ty * ty + tz * tz).sqrt()
     }
 }
-
 
 /// Mercury
 pub const MERCURY: Planet = Planet {
@@ -337,7 +336,9 @@ pub const PLUTO: Planet = Planet {
 ///   println!("{} AU", p.distance(time::Date::now()));
 /// }
 /// ```
-pub const PLANETS: [&Planet; 9] = [&MERCURY, &VENUS, &EARTH, &MARS, &JUPITER, &SATURN, &URANUS, &NEPTUNE, &PLUTO];
+pub const PLANETS: [&Planet; 9] = [
+    &MERCURY, &VENUS, &EARTH, &MARS, &JUPITER, &SATURN, &URANUS, &NEPTUNE, &PLUTO,
+];
 
 #[cfg(test)]
 mod tests {
@@ -382,8 +383,8 @@ mod tests {
             )
         );
         assert_eq!(
-        	MARS.distance(time::Date::from_julian(2460748.41871)),
-        	0.9721731869765928
+            MARS.distance(time::Date::from_julian(2460748.41871)),
+            0.9721731869765928
         );
     }
 }
