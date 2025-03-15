@@ -7,5 +7,6 @@ edition = "2021"
 license = "0BSD"
 readme = "README.md"
 keywords = ["astronomy"]
+repository = "https://codeberg.org/oliverkwebb/pracstro-rs"
 
 [dependencies]
