@@ -111,6 +111,19 @@ impl Planet {
 
         coord::Coord::from_cartesian(c.0 - e.0, c.1 - e.1, c.2 - e.2)
     }
+
+	/// Returns distance in AU
+    pub fn distance(&self, d: time::Date) -> f64 {
+        if self.number == 2 {
+            // If we aren't the earth, get the coords of the earth
+            return 0.0;
+        }
+        let c = self.locationcart(d);
+        let e = EARTH.locationcart(d);
+        let (tx, ty, tz) = (c.0 - e.0, c.1 - e.1, c.2 - e.2);
+
+        (tx * tx + ty * ty + tz * tz).sqrt()
+    }
 }
 
 // Numbers from https://ssd.jpl.nasa.gov/planets/approx_pos.html
@@ -328,6 +341,10 @@ mod tests {
                 time::Period::from_clock(4, 47, 10.5),
                 time::Period::from_degminsec(22, 01, 7.7)
             )
+        );
+        assert_eq!(
+        	MARS.distance(time::Date::from_julian(2460748.41871)),
+        	0.9721731869765928
         );
     }
 }

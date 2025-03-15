@@ -107,7 +107,7 @@ impl Moon {
 
     /// Returns (Illuminated Fraction, Moon Age)
     pub fn phase(self, d: time::Date) -> (f64, f64) {
-        let (age, _, _) = self.mooninfo(d);
+        let age = self.mooninfo(d).0;
         fn fixangle(a: f64) -> f64 {
             a - 360.0 * (a / 360.0).floor()
         }
@@ -121,9 +121,14 @@ impl Moon {
 
     /// Returns the coordinates of the moon
     ///
-    /// Note that this code has a low accuracy of around 5 degrees
+    /// This code has a low accuracy of around 5 degrees
     pub fn location(self, d: time::Date) -> coord::Coord {
         self.mooninfo(d).1
+    }
+
+	/// Returns the distance to the moon in kilometers
+    pub fn distance(self, d: time::Date) -> f64 {
+    	self.mooninfo(d).2
     }
 }
 
@@ -166,5 +171,13 @@ mod tests {
             MOON.phase(time::Date::from_julian(2460748.467894)),
             (0.9992826878174288, 14.51351025828691)
         );
+    }
+
+    #[test]
+    fn test_moondist() {
+    	assert_eq!(
+    		MOON.distance(time::Date::from_julian(2460748.467894)),
+    		400409.3239036367
+    	);
     }
 }
