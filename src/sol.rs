@@ -29,7 +29,6 @@ pub fn where_is_sun(d: time::Date) -> coord::Coord {
 ///
 /// Ephemeris for planets uses Keplerian motion with correction for perturbations of other planets
 /// Error is at most 10' for most use, well within range of wanted accuracy.
-#[derive(PartialEq, Copy, Clone)]
 pub struct Planet {
     /// Planet Number
     pub number: u8,
@@ -52,9 +51,9 @@ pub struct Planet {
 }
 impl Planet {
     /// Returns the location of the planets as rectangular coordinates as relative to the Sun
-	///
-	/// From <>
-    pub fn locationcart(self, d: time::Date) -> (f64, f64, f64) {
+    ///
+    /// From <>
+    pub fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {
         fn kepler(m: f64, e: f64, ee: f64) -> f64 {
             let dm = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
             dm / (1.0 - e * (ee.to_radians()).cos())
@@ -102,11 +101,11 @@ impl Planet {
     }
 
     /// Returns coordinates as subtracted from the earths coordinates
-    pub fn location(self, d: time::Date) -> coord::Coord {
+    pub fn location(&self, d: time::Date) -> coord::Coord {
         let c = self.locationcart(d);
         if self.number == 2 {
             // If we aren't the earth, get the coords of the earth
-            return coord::Coord::from_cartesian(c.0, c.1, c.2)
+            return coord::Coord::from_cartesian(c.0, c.1, c.2);
         }
         let e = EARTH.locationcart(d);
 

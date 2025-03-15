@@ -107,34 +107,71 @@ impl Date {
     }
 }
 
-/// Angles and Time being the most prominent use for this type
-/// Radians, [0, Tau (2pi)]
-#[derive(Clone, Copy)]
-pub struct Period(f64);
+/// Angles and Time being the most prominent use for this type /// Radians, [0, Tau (2pi)]
+///
 /// Properties of concern:
 ///     Radians
 ///     Degrees
 ///     Decimal Hours (i.e. 11.5)
 ///     Hour, Minute, (Second[.Subsecond]) (i.e. 11:30)
+#[derive(Clone, Copy)]
+pub struct Period(f64);
 impl Period {
-    /// Direct interface to type
+    /// Returns the angle as radians.
     ///
-    /// This is the only function that should directly access the fields of the type
+    /// This is the only function that should directly access the fields of the type.
+    ///
+    /// ```
+    /// use pracstro::time::Period;
+    /// Period::from_degrees(180.0).radians(); // Pi
+    /// ```
     pub fn radians(self) -> f64 {
         self.0
     }
-    /// This is the only function that directly writes to Period
-    /// ALWAYS DO THIS UNDER A (TRUE) MODULO GUARD WITH LPR
+    /// Constructs a angle from radians, reducing it to the range of \[0, 2*PI\].
+    ///
+    /// This is the one of the two only functions that directly access [`Period`].
+    /// Reduction to the desired range is done with Least Positive Residue instead of the remainder operator.
+    /// ```
+    /// use pracstro::time::Period;
+    /// Period::from_radians(std::f64::consts::PI).degrees(); // 180.0
+    /// ```
     pub fn from_radians(x: f64) -> Self {
         Period(lpr(x, std::f64::consts::TAU))
     }
+    /// Converts angles internally so that formatting them as latitudes makes sense
+    ///
+    /// This should be used directly in conjunction with a formatting function.
+    /// The main use case for this is in coordinate handling where angles of latitude can be negative.
+    /// This is the only other function that should be able to directly access [`Period`] than [`Period::from_radians()`].
+    ///
+    /// ```
+    /// use pracstro::time::Period;
+    /// Period::from_degrees(-25.0).degrees(); // 335.0
+    /// Period::from_degrees(-25.0).to_latitude().degrees(); // -25.0
+    /// ```
+    pub fn to_latitude(self) -> Self {
+        match self.radians() > std::f64::consts::PI {
+            true => Period(self.radians() - std::f64::consts::TAU),
+            false => self,
+        }
+    }
 
-    /// Wrapper around .to_degrees()
+    /// Returns the angle as degrees.
+    ///
+    /// ```
+    /// use pracstro::time::Period;
+    /// Period::from_degrees(-25.0).degrees(); // 335.0
+    /// ```
     pub fn degrees(self) -> f64 {
         self.radians().to_degrees()
     }
-    /// Wrapper around .from_degrees()
-
+    /// Constructs an angle from degrees.
+    ///
+    /// ```
+    /// use pracstro::time::Period;
+    /// Period::from_degrees(-25.0).degrees(); // 335.0
+    /// ```
     pub fn from_degrees(x: f64) -> Self {
         Period::from_radians(x.to_radians())
     }
@@ -177,7 +214,7 @@ impl Period {
     }
 
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
-	///
+    ///
     /// Algorithm from Practical Astronomy with Your Calculator
     pub fn gst(self, date: Date) -> Self {
         let jday = date.julian();
@@ -190,7 +227,7 @@ impl Period {
         Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
     }
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
-	///
+    ///
     /// Algorithm from Practical Astronomy with Your Calculator
     pub fn ungst(self, date: Date) -> Self {
         let jday = date.julian();
@@ -309,6 +346,13 @@ mod tests {
         assert_eq!(
             Period::from_decimal(0.401_453).sub(Period::from_degrees(-64.0)),
             Period(1.2221108709065023)
+        );
+    }
+    #[test]
+    fn test_lati() {
+        assert_eq!(
+            Period::from_degrees(-25.0).to_latitude().degrees(),
+            -25.00000000000002 // God I hate floating point
         );
     }
 }

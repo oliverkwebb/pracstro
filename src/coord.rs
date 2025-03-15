@@ -114,17 +114,17 @@ impl Coord {
         Coord::from_celestial(ra, de)
     }
 
-	/// Convert Rectangular Coordinates to RA/Dec
-	///
-	/// Note how this has no pair function that converts to rectangular coords
-	pub fn from_cartesian(x: f64, y: f64, z: f64) -> Self {
-	    let (tx, ty, tz) = (x, y, z);
+    /// Convert Rectangular Coordinates to RA/Dec
+    ///
+    /// Note how this has no pair function that converts to rectangular coords
+    pub fn from_cartesian(x: f64, y: f64, z: f64) -> Self {
+        let (tx, ty, tz) = (x, y, z);
         let r = (tx * tx + ty * ty + tz * tz).sqrt();
         let l = Period::atan2(ty, tx);
         let t2 = Period::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
 
         Coord::from_celestial(l, t2)
-	}
+    }
 
     /// Returns the angle between two objects
     pub fn dist(self, from: Self) -> Period {
