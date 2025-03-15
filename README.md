@@ -17,20 +17,34 @@ time::Period::from_degrees(120.0).clock(); // 16h00m00s
 
 # Structure
 This library contains 4 primary modules, which build upon the ones before them:
-1. [`time`] for the conversion and representation of times, dates, and angles.
-2. [`coord`] for the conversion and representation of coordinates.
-3. [`sol`] for the calculation of properties of planets and the sun.
-4. [`moon`] for the calculation of properties of the moon.
+1. `time` for the conversion and representation of times, dates, and angles.
+2. `coord` for the conversion and representation of coordinates.
+3. `sol` for the calculation of properties of planets and the sun.
+4. `moon` for the calculation of properties of the moon.
 
 Each of these have one or two types that represent a certain kind of data:
-- [`Date`](time::Date) - An instant in continuous time.
-- [`Period`](time::Period) - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
-- [`Coord`](coord::Coord) - A pair of angles, representing latitude/longitude on a sphere.
-- [`Planet`](sol::Planet) - A planets orbital properties, along with data required for orbital correction.
-- [`Moon`](moon::Moon) - The moons orbital properties.
+- `Date` - An instant in continuous time.
+- `Period` - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
+- `Coord` - A pair of angles, representing latitude/longitude on a sphere.
+- `Planet` - A planets orbital properties, along with data required for orbital correction.
+- `Moon` - The moons orbital properties.
 
 These types have methods to get the properties of this data. Primarily in pairs of methods that convert to/from a certain
 representation of that data. Although lone methods that get certain data for a type do exist.
+
+```
+use pracstro::*;
+time::Period::from_radians(time::Period::from_decimal(16.0).radians()).clock();
+```
+
+# Benchmarks
+
+| Test           | Mean (n=40000) |
+|----------------|----------------|
+| Control (NOP)  | 0ns            |
+| Current time   | 34ns           |
+| Full ephemeris | 3.406µs        |
+| Moon Phase     | 558ns          |
 
 # Goals
 * **Simplicity** - The algorithms in this library should be parsimonious enough to be transcribed into several different languages.
@@ -43,19 +57,13 @@ provided by this library should be good enough most real-world use.
 # Non-Goals
 * **Complete Accuracy** - There are an extremely large amount of factors which can throw values off over a long enough time. It is fortunate that most of these factors are negligible over time-spans of hundreds, or even in some cases thousands of years. Additionally, some of these effects (altitude, temperature, air-pressure) are not predictable.
 * **Cataloging** - This library contains information about the Moon, Sun, and Planets (including Pluto). it does not however catalog minor planets or stars
+* **Micro-optimization** - This library should be parsimonious and straightforward enough that *any optimization is premature optimization*.
 
 # Precision
 
 This library aims to be accurate enough across a large enough range of time for most user-end applications.
 Its not perfect in its answers down to the arcsecond (nor could it be on a reasonable scale),
 but is does provide enough accuracy for widgets, telescope pointing, scheduling ("Will I be able to see Venus this weekend?"), etc.
-
-High precision astronomy libraries that work over vast spans of time contain impressive levels of code in
-
-```
-use pracstro::*;
-time::Period::from_radians(time::Period::from_decimal(16.0).radians()).clock();
-```
 
 # Resources
 

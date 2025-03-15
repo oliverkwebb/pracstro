@@ -17,6 +17,15 @@ moon::MOON.phase(now_date).0; // The illuminated fraction of the moons surface
 time::Period::from_degrees(120.0).clock(); // 16h00m00s
 ```
 
+# Speed
+
+| Test           | Mean (n=40000) |
+|----------------|----------------|
+| Control (NOP)  | 0ns            |
+| Current time   | 34ns           |
+| Full ephemeris | 3.406µs        |
+| Moon Phase     | 558ns          |
+
 # Structure
 This library contains 4 primary modules, which build upon the ones before them:
 1. [`time`] for the conversion and representation of times, dates, and angles.

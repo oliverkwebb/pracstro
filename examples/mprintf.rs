@@ -1,5 +1,4 @@
 use pracstro::{moon,time};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const HALFMON: f64 = 14.76529434;
 const EMOJIS: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
