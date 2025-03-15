@@ -42,7 +42,7 @@ Additional Methods:
 * GST Correction: [`Period::gst()`] and [`Period::ungst()`]
 * Inverse of angle: [`Period::inverse()`]
 */
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Period(f64);
 impl Period {
     /// Returns the angle as radians.
@@ -258,6 +258,9 @@ Continuous Instant in Time
 | Julian Day        | [`Date::julian()`]    | [`Date::from_julian()`]    |
 | Calendar          | [`Date::calendar()`]  | [`Date::from_calendar()`]  |
 | Unix Time         | [`Date::unix()`]      | [`Date::from_unix()`]      |
+
+Additional Methods
+* Get the current time: [`Date::now()`]
 */
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Date(f64);
@@ -342,6 +345,15 @@ impl Date {
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub fn from_unix(t: f64) -> Self {
         Date::from_julian((t / 86400.0) + 2440587.5)
+    }
+
+    /// Gets the current date
+    ///
+    /// Since this function relies on SystemTime and duration_since, it does not work for dates before 1970.
+    pub fn now() -> Self {
+    	use std::time::{SystemTime,UNIX_EPOCH};
+		let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("Expected pre-1970-01-01 date").as_secs() as f64;
+		Date::from_unix(now)
     }
 }
 

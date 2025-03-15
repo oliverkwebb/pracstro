@@ -30,7 +30,6 @@ fn phaseidx(ilumfrac: f64, mage: f64) -> usize {
 }
 
 fn main() {
-	let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("Expected pre-1970-01-01 date").as_secs() as f64;
-	let p = moon::MOON.phase(time::Date::from_unix(now));
+	let p = moon::MOON.phase(time::Date::now());
     println!("{} {} ({:.2}%)", PNAMES[phaseidx(p.0, p.1)], EMOJIS[phaseidx(p.0, p.1)], p.0 * 100.0);
 }

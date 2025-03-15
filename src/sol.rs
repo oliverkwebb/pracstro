@@ -1,4 +1,21 @@
-//! Solar Dynamics and handling of planets orbits
+/*! Solar Dynamics and handling of planets orbits
+
+This function has one main type, [`Planet`]. With two main methods, [`Planet::distance()`] and [`Planet::location()`].
+
+```
+use pracstro::{time, sol};
+
+let now = time::Date::now();
+for p in sol::PLANETS {
+    let (ra, de) =  p.location(now).celestial();
+    let ((rah, ram, _), (ded, dem, _)) = (ra.clock(), de.to_latitude().degminsec());
+    println!("{:<10} {:>2}h{:02} RA {:>3}°{:02}' De {:.2} AU", p.name, rah, ram, ded, dem, p.distance(now));
+}
+```
+
+Orbital property and correction numbers from <https://ssd.jpl.nasa.gov/planets/approx_pos.html>
+*/
+
 use crate::{coord, time};
 
 /// Calculate the coordinates of the sun at a given time
@@ -32,6 +49,8 @@ pub fn where_is_sun(d: time::Date) -> coord::Coord {
 pub struct Planet {
     /// Planet Number
     pub number: u8,
+    /// Planet Name
+    pub name: &'static str,
     /// Semi-Major Axis (AU)
     pub a: f64,
     /// Eccentricity
@@ -105,7 +124,7 @@ impl Planet {
         let c = self.locationcart(d);
         if self.number == 2 {
             // If we aren't the earth, get the coords of the earth
-            return coord::Coord::from_cartesian(c.0, c.1, c.2);
+            return coord::Coord::default()
         }
         let e = EARTH.locationcart(d);
 
@@ -126,11 +145,11 @@ impl Planet {
     }
 }
 
-// Numbers from https://ssd.jpl.nasa.gov/planets/approx_pos.html
 
 /// Mercury
 pub const MERCURY: Planet = Planet {
     number: 0,
+    name: "Mercury",
     a: 0.38709927,
     e: 0.20563593,
     i: 7.00497902,
@@ -150,6 +169,7 @@ pub const MERCURY: Planet = Planet {
 /// Venus
 pub const VENUS: Planet = Planet {
     number: 1,
+    name: "Venus",
     a: 0.72333566,
     e: 0.00677672,
     i: 3.39467605,
@@ -169,6 +189,7 @@ pub const VENUS: Planet = Planet {
 /// Earth (Technically the Earth-Moon Barycenter)
 pub const EARTH: Planet = Planet {
     number: 2,
+    name: "Earth",
     a: 1.00000261,
     e: 0.01671123,
     i: -0.00001531,
@@ -188,6 +209,7 @@ pub const EARTH: Planet = Planet {
 /// Mars
 pub const MARS: Planet = Planet {
     number: 3,
+    name: "Mars",
     a: 1.52371034,
     e: 0.09339410,
     i: 1.84969142,
@@ -207,6 +229,7 @@ pub const MARS: Planet = Planet {
 /// Jupiter
 pub const JUPITER: Planet = Planet {
     number: 4,
+    name: "Jupiter",
     a: 5.20248019,
     e: 0.04853590,
     i: 1.29861416,
@@ -226,6 +249,7 @@ pub const JUPITER: Planet = Planet {
 /// Saturn
 pub const SATURN: Planet = Planet {
     number: 5,
+    name: "Saturn",
     a: 9.54149883,
     e: 0.05550825,
     i: 2.49424102,
@@ -245,6 +269,7 @@ pub const SATURN: Planet = Planet {
 /// Uranus
 pub const URANUS: Planet = Planet {
     number: 6,
+    name: "Uranus",
     a: 19.18797948,
     e: 0.04685740,
     i: 0.77298127,
@@ -264,6 +289,7 @@ pub const URANUS: Planet = Planet {
 /// Neptune
 pub const NEPTUNE: Planet = Planet {
     number: 7,
+    name: "Neptune",
     a: 30.06952752,
     e: 0.00895439,
     i: 1.77005520,
@@ -283,6 +309,7 @@ pub const NEPTUNE: Planet = Planet {
 /// Pluto
 pub const PLUTO: Planet = Planet {
     number: 8,
+    name: "Pluto",
     a: 39.48686035,
     e: 0.24885238,
     i: 17.14104260,
@@ -299,6 +326,18 @@ pub const PLUTO: Planet = Planet {
     ],
     extra: None,
 };
+
+/// Defines the planets in order
+///
+/// Can be used in a iterator to loop over planets
+///
+/// ```
+/// use pracstro::*;
+/// for p in sol::PLANETS {
+///   println!("{} AU", p.distance(time::Date::now()));
+/// }
+/// ```
+pub const PLANETS: [&Planet; 9] = [&MERCURY, &VENUS, &EARTH, &MARS, &JUPITER, &SATURN, &URANUS, &NEPTUNE, &PLUTO];
 
 #[cfg(test)]
 mod tests {

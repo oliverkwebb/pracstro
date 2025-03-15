@@ -28,7 +28,7 @@ Pair of angles, Representing "How far up" and "How far round"
 | Equatorial        | Declination (δ)   | Hour Angle (h)      | Date, Time, Longitude           | [`Coord::equatorial()`]| [`Coord::from_equatorial()`]|
 | Horizontal        | Altitude (a)      | Azimuth (A)         | Date, Time, Latitude, Longitude | [`Coord::horizon()`]   | [`Coord::from_horizon()`]   |
 | Ecliptic          | Ecl. Latitude (β) | Ecl. Longitude (λ)  | Date[^1]                        | [`Coord::ecliptic()`]  | [`Coord::from_ecliptic()`]  |
-| Cartesian         | N/A (3D) system   | N/A (3D system)     | Distance                        |                        | [`Coord::from_cartesian()`] |
+| Cartesian         | N/A (3D system)   | N/A (3D system)     | Distance                        |                        | [`Coord::from_cartesian()`] |
 
 Additional Methods:
 * Distance between coordinates: [`Coord::dist()`]
@@ -36,7 +36,7 @@ Additional Methods:
 
 [^1]: The plane of the ecliptic varies slightly with perturbations in the orbit and inclination of the earth.
 */
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub struct Coord(Period, Period);
 impl Coord {
     /// Right Ascension and Declination
