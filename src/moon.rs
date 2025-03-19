@@ -138,27 +138,9 @@ mod tests {
 
     #[test]
     fn test_moonlocation() {
-        /*
-        assert_eq!(
-            MOON.location(time::Date::from_julian(2446982.804861111)),
-            coord::Coord::from_celestial(
-                time::Period::from_degminsec(227, 1, 31.55),
-                time::Period::from_degminsec(-17, 35, 39.2)
-            )
-        );
-        */
-        /*
-        assert_eq!(
-            MOON.location(time::Date::from_julian(2453922.554861111)),
-            coord::Coord::from_celestial(
-                time::Period::from_clock(14, 26, 57.7),
-                time::Period::from_degminsec(-18, 05, 39.2)
-            )
-        );
-        */
         assert_eq!(
             MOON.location(time::Date::from_julian(2460748.554861)),
-            coord::Coord::from_celestial(
+            coord::Coord::from_equatorial(
                 time::Period::from_degminsec(172, 11, 15.7),
                 time::Period::from_degminsec(3, 59, 15.2)
             )

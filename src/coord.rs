@@ -24,8 +24,7 @@ Pair of angles, Representing "How far up" and "How far round"
 
 | Property          | Latitude          | Longitude           | Depends On                      | To Method              | From Method                 |
 |-------------------|-------------------|---------------------|---------------------------------|------------------------|-----------------------------|
-| Celestial         | Declination (δ)   | Right Ascension (α) |                                 | [`Coord::celestial()`] | [`Coord::from_celestial()`] |
-| Equatorial        | Declination (δ)   | Hour Angle (h)      | Date, Time, Longitude           | [`Coord::equatorial()`]| [`Coord::from_equatorial()`]|
+| Equatorial        | Declination (δ)   | Right Ascension (α) |                                 | [`Coord::equatorial()`]| [`Coord::from_equatorial()`]|
 | Horizontal        | Altitude (a)      | Azimuth (A)         | Date, Time, Latitude, Longitude | [`Coord::horizon()`]   | [`Coord::from_horizon()`]   |
 | Ecliptic          | Ecl. Latitude (β) | Ecl. Longitude (λ)  | Date[^1]                        | [`Coord::ecliptic()`]  | [`Coord::from_ecliptic()`]  |
 | Cartesian         | N/A (3D system)   | N/A (3D system)     | Distance                        |                        | [`Coord::from_cartesian()`] |
@@ -40,28 +39,12 @@ Additional Methods:
 pub struct Coord(Period, Period);
 impl Coord {
     /// Right Ascension and Declination
-    pub fn celestial(self) -> (Period, Period) {
+    pub fn equatorial(self) -> (Period, Period) {
         (self.0, self.1)
     }
     /// Right Ascension and Declination
-    pub fn from_celestial(x: Period, y: Period) -> Self {
+    pub fn from_equatorial(x: Period, y: Period) -> Self {
         Coord(x, y)
-    }
-
-    /// Hour angle and Declination, dependent on longitude and time
-    pub fn equatorial(self, date: Date, time: Period, longi: Period) -> (Period, Period) {
-        let (ra, de) = self.celestial();
-        (time.gst(date) + longi - ra, de)
-    }
-    /// Hour angle and Declination, dependent on longitude and time
-    pub fn from_equatorial(
-        ha: Period,
-        de: Period,
-        date: Date,
-        time: Period,
-        longi: Period,
-    ) -> Self {
-        Coord::from_celestial(time.gst(date) + longi - ha, de)
     }
 
     /// Azimuth and Altitude, dependent on longitude, Latitude and time
@@ -74,7 +57,8 @@ impl Coord {
         lati: Period,
         longi: Period,
     ) -> (Period, Period) {
-        let (ha, de) = self.equatorial(date, time, longi);
+        let (ra, de) = self.equatorial();
+        let ha = ra.hourangle_rightas(date, time, longi);
         let alt = Period::asin(de.sin() * lati.sin() + de.cos() * lati.cos() * ha.cos());
         let azip = Period::acos((de.sin() - lati.sin() * alt.sin()) / (lati.cos() * alt.cos()));
         let azi = match ha.sin() < 0.0 {
@@ -100,14 +84,14 @@ impl Coord {
             true => hap,
             false => Period::from_degrees(360.0 - hap.degrees()),
         };
-        Coord::from_equatorial(ha, de, date, time, longi)
+        Coord::from_equatorial(ha.hourangle_rightas(date, time, longi), de)
     }
 
     /// Used in solar calculations, based on the plane of the orbit of the earth
     ///
     /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn ecliptic(self, d: Date) -> (Period, Period) {
-        let (ra, de) = self.celestial();
+        let (ra, de) = self.equatorial();
         let e = mean_obliquity_ecl(d);
         let beta = Period::asin(de.sin() * e.cos() - de.cos() * e.sin() * ra.sin());
         let y = ra.sin() * e.cos() + de.tan() * e.sin();
@@ -122,7 +106,7 @@ impl Coord {
         let e = mean_obliquity_ecl(d);
         let de = Period::asin(beta.sin() * e.cos() + beta.cos() * e.sin() * lambda.sin());
         let ra = Period::atan2(lambda.sin() * e.cos() - beta.tan() * e.sin(), lambda.cos());
-        Coord::from_celestial(ra, de)
+        Coord::from_equatorial(ra, de)
     }
 
     /// Convert Rectangular Coordinates to RA/Dec
@@ -134,19 +118,19 @@ impl Coord {
         let l = Period::atan2(ty, tx);
         let t2 = Period::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
 
-        Coord::from_celestial(l, t2)
+        Coord::from_equatorial(l, t2)
     }
 
     /// Returns the angle between two objects
     pub fn dist(self, from: Self) -> Period {
-        let ((a1, d1), (a2, d2)) = (self.celestial(), from.celestial());
+        let ((a1, d1), (a2, d2)) = (self.equatorial(), from.equatorial());
         Period::acos(d1.sin() * d2.sin() + d1.cos() * d2.cos() * (a1 - a2).cos())
     }
     /// Returns (Rise, Set) UT, This function will fail for locations in the sky that never appear over the horizon
     ///
-    /// From Practical Astronomy with Your Calculator
+    /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn riseset(self, date: Date, lati: Period, longi: Period) -> Option<(Period, Period)> {
-        let (ra, de) = self.celestial();
+        let (ra, de) = self.equatorial();
         let ar = Period::acos(de.sin() / lati.cos());
         let h = Period::acos(-lati.tan() * de.tan());
         if h.radians().is_nan() || ar.radians().is_nan() {
@@ -167,39 +151,12 @@ mod tests {
     // * Then how can I use these functions?: In conjunction with the functions for correction (procession, nutation, abberation, refraction)
     // Note that even without correction, these tests are almost always within 15' (half the moons diameter).
     #[test]
-    fn test_ra_ha() {
-        let star1 =
-            Coord::from_celestial(Period::from_clock(18, 32, 21.0), Period::from_degrees(23.4));
-        assert_eq!(
-            star1
-                .equatorial(
-                    Date::from_calendar(1980, 4, 22.0),
-                    Period::from_clock(14, 36, 51.67),
-                    Period::from_degrees(-64.0)
-                )
-                .0,
-            Period::from_clock(5, 51, 44.0)
-        );
-        assert_eq!(
-            Coord::from_equatorial(
-                Period::from_clock(5, 51, 44.0),
-                star1.celestial().1,
-                Date::from_calendar(1980, 4, 22.0),
-                Period::from_clock(14, 36, 51.67),
-                Period::from_degrees(-64.0)
-            )
-            .0,
-            Period::from_clock(18, 32, 21.0)
-        );
-    }
-
-    #[test]
     fn test_horiz() {
-        let arcturus = Coord::from_celestial(
+        let arcturus = Coord::from_equatorial(
             Period::from_clock(14, 16, 50.0),
             Period::from_degminsec(19, 02, 50.1),
         );
-        let sirius = Coord::from_celestial(
+        let sirius = Coord::from_equatorial(
             Period::from_clock(6, 46, 13.1),
             Period::from_degminsec(-16, 45, 06.8),
         );
@@ -255,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_riseset() {
-        let c = Coord::from_celestial(
+        let c = Coord::from_equatorial(
             Period::from_clock(23, 39, 20.0),
             Period::from_degminsec(21, 42, 00.0),
         );
@@ -282,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_ecliptic() {
-        let star1 = Coord::from_celestial(
+        let star1 = Coord::from_equatorial(
             Period::from_clock(9, 34, 53.6),
             Period::from_degminsec(19, 32, 14.2),
         );

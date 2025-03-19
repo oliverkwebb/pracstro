@@ -1,4 +1,4 @@
-use pracstro::{coord, moon, sol, time};
+use pracstro::{moon, sol, time};
 use std::time::Instant;
 
 fn run_test(name: &str, n: u32, run: fn() -> ()) {
@@ -19,7 +19,7 @@ fn main() {
     fn ephem() {
         let now = time::Date::now();
         for p in sol::PLANETS {
-            let (ra, de) = p.location(now).celestial();
+            let (ra, de) = p.location(now).equatorial();
             (ra.clock(), de.to_latitude().degminsec());
         }
     }

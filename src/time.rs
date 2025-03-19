@@ -190,6 +190,13 @@ impl Period {
         Period::from_decimal(lpr(self.decimal() - t0, 24.0) * 0.9972695663)
     }
 
+    /// Gets the hour angle from the angle as if it were a right ascension, and vice versa.
+    ///
+    /// Used in horizontal coordinates.
+    pub fn hourangle_rightas(self, date: Date, time: Period, longi: Period) -> Self {
+        time.gst(date) + longi - self
+    }
+
     /// Sine of Period
     pub fn sin(self) -> f64 {
         self.radians().sin()
@@ -287,7 +294,7 @@ impl Date {
 
     /// Returns Year, Month, Day (time is Period::from_decimal(day.fract()))
     ///
-    /// Algorithm from Practical Astronomy with Your Calculator
+    /// Algorithm from Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
     pub fn calendar(self) -> (u32, u8, f64) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
@@ -312,7 +319,7 @@ impl Date {
     }
     /// Takes Year, Month, and Day
     ///
-    /// Algorithm from Practical Astronomy with Your Calculator
+    /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
     pub fn from_calendar(y: u64, m: u8, d: f64) -> Self {
         let (mut year, mut month, day): (f64, f64, f64) = (y as f64, m as f64, d);
         if month < 3.0 {

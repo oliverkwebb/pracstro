@@ -7,7 +7,7 @@ use pracstro::{time, sol};
 
 let now = time::Date::now();
 for p in sol::PLANETS {
-    let (ra, de) =  p.location(now).celestial();
+    let (ra, de) =  p.location(now).equatorial();
     let ((rah, ram, _), (ded, dem, _)) = (ra.clock(), de.to_latitude().degminsec());
     println!("{:<10} {:>2}h{:02} RA {:>3}°{:02}' De {:.2} AU", p.name, rah, ram, ded, dem, p.distance(now));
 }
@@ -348,7 +348,7 @@ mod tests {
     fn test_sunpos() {
         assert_eq!(
             where_is_sun(time::Date::from_julian(2268932.541667)),
-            coord::Coord::from_celestial(
+            coord::Coord::from_equatorial(
                 time::Period::from_degrees(298.49306),
                 time::Period::from_degrees(-20.91664)
             )
@@ -370,14 +370,14 @@ mod tests {
     fn test_planet() {
         assert_eq!(
             VENUS.location(time::Date::from_calendar(2025, 3, 12.0)),
-            coord::Coord::from_celestial(
+            coord::Coord::from_equatorial(
                 time::Period::from_clock(0, 17, 44.5),
                 time::Period::from_degminsec(10, 54, 50.7)
             )
         );
         assert_eq!(
             JUPITER.location(time::Date::from_julian(2460748.41871)),
-            coord::Coord::from_celestial(
+            coord::Coord::from_equatorial(
                 time::Period::from_clock(4, 47, 10.5),
                 time::Period::from_degminsec(22, 01, 7.7)
             )
