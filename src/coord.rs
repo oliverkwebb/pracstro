@@ -2,7 +2,6 @@
 //!
 //! This module contains one type, [`Coord`]. That has methods to convert two and from several
 //! different coordinate systems. Mainly:
-//! - Celestial (Right Ascension, Declination)
 //! - Equatorial (Hour Angle, Declination)
 //! - Horizon (Azimuth, Altitude)
 //! - Ecliptic (Beta, Lambda)
