@@ -46,6 +46,7 @@ pub fn where_is_sun(d: time::Date) -> coord::Coord {
 ///
 /// Ephemeris for planets uses Keplerian motion with correction for perturbations of other planets
 /// Error is at most 10' for most use, well within range of wanted accuracy.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Planet {
     /// Planet Number
     pub number: u8,
