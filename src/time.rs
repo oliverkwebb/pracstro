@@ -28,8 +28,9 @@ Angles and Time are the most prominent use for this type
 
 | Property          | To Method               | From Method                  |
 |-------------------|-------------------------|------------------------------|
-| Radians           | [`Period::radians()`]   | [`Period::from_radians()`]   |
 | Degrees (Decimal) | [`Period::degrees()`]   | [`Period::from_degrees()`]   |
+| Radians           | [`Period::radians()`]   | [`Period::from_radians()`]   |
+| Turns (\[0,1\])   | [`Period::turns()`]     | [`Period::from_turns()`]     |
 | Hours (Decimal)   | [`Period::decimal()`]   | [`Period::from_decimal()`]   |
 | Clock Time        | [`Period::clock()`]     | [`Period::from_clock()`]     |
 | Degrees (DMS)     | [`Period::degminsec()`] | [`Period::from_degminsec()`] |
@@ -104,6 +105,19 @@ impl Period {
     /// ```
     pub fn from_degrees(x: f64) -> Self {
         Period::from_radians(x.to_radians())
+    }
+
+    /// Returns the angle in the range between 0 and 1 (i.e. turns)
+    ///
+    /// Used in the calculation for the illuminated fraction of planets
+    pub fn turns(self) -> f64 {
+        self.degrees() / 360.0
+    }
+    /// Constructs an angle from a value between 0 and 1
+    ///
+    /// Used in the calculation for the illuminated fraction of planets
+    pub fn from_turns(x: f64) -> Self {
+        Self::from_degrees(x * 360.0)
     }
 
     /// Returns the angle in fractional number of hours
@@ -424,5 +438,11 @@ mod tests {
             Period::from_degrees(-25.0).to_latitude().degrees(),
             -25.00000000000002 // God I hate floating point
         );
+    }
+
+    #[test]
+    fn test_turn() {
+        assert_eq!(Period::from_turns(0.5), Period::from_degrees(180.0));
+        assert_eq!(Period::from_degrees(180.0), Period::from_turns(0.5));
     }
 }

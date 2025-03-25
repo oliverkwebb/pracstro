@@ -32,7 +32,7 @@ pub const MOON: Moon = Moon {
     n0: 151.950429,
     i: 5.145396,
     e: 0.054900,
-    a: 384401.0, // KM
+    a: 0.002569562, // AU
     theta0: 0.5181,
     pi0: 0.9507,
 };
@@ -48,7 +48,7 @@ impl Moon {
         /* Calculation of the Sun's position */
         let day = d.julian() - self.epoch; /* Date within epoch */
         let m = fixangle(fixangle((360.0 / 365.2422) * day) + 278.833540 - 282.596403); /* Convert from perigee co-ordinates to epoch 1980.0 */
-        let lambdasun = sol::where_is_sun(d).ecliptic(d).0.degrees();
+        let lambdasun = sol::sun::location(d).ecliptic(d).0.degrees();
 
         // Moon's mean longitude
         let ml = time::Period::from_degrees(13.1763966 * day + self.l0);
@@ -126,9 +126,14 @@ impl Moon {
         self.mooninfo(d).1
     }
 
-    /// Returns the distance to the moon in kilometers
+    /// Returns the distance to the moon in AU
     pub fn distance(self, d: time::Date) -> f64 {
         self.mooninfo(d).2
+    }
+
+    /// Returns angular diameter of the planet at current time
+    pub fn angdia(self, d: time::Date) -> time::Period {
+        time::Period::from_degrees(self.theta0 / self.distance(d))
     }
 }
 
@@ -159,7 +164,7 @@ mod tests {
     fn test_moondist() {
         assert_eq!(
             MOON.distance(time::Date::from_julian(2460748.467894)),
-            400409.3239036367
+            0.002676571036881997
         );
     }
 }
