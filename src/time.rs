@@ -358,6 +358,10 @@ impl Date {
 
         Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day + 1_720_994.5)
     }
+    /// Gets the time of day in a current calendar date
+    pub fn time(self) -> Period {
+    	Period::from_decimal(self.calendar().2.fract()*24.0)
+    }
 
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
     pub fn unix(self) -> f64 {
@@ -398,6 +402,7 @@ mod tests {
             Date::from_calendar(1985, 2, 17.25)
         );
         assert_eq!(Date::from_julian(2_446_113.75).calendar(), (1985, 2, 17.25));
+        assert_eq!(Date::from_calendar(1967, 04, 12.6).time().decimal(), 14.400000002235174);
     }
 
     #[test]
