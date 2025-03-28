@@ -8,7 +8,7 @@
 //!
 //! ```rust
 //! use pracstro::*;
-//! time::Date::from_calendar(2024, 06, 30.0).julian(); // Gets the julian date at 2024-06-30
+//! time::Date::from_calendar(2024, 06, 30, time::Period::from_clock(16, 30, 0.0)).julian(); // Gets the julian date at 2024-06-30T16:30:00Z
 //! ```
 
 use std::fmt;
@@ -309,7 +309,7 @@ impl Date {
     /// Returns Year, Month, Day (time is Period::from_decimal(day.fract()))
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
-    pub fn calendar(self) -> (u32, u8, f64) {
+    pub fn calendar(self) -> (u32, u8, u8, Period) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
@@ -328,14 +328,15 @@ impl Date {
         let m = if g < 13.5 { g - 1.0 } else { g - 13.0 };
         let y = if m > 2.5 { d - 4716.0 } else { d - 4715.0 };
         let d = c - e + f - (30.6001 * g).trunc();
+        let t = Period::from_turns(d.fract());
 
-        (y as u32, m as u8, d)
+        (y as u32, m as u8, d as u8, t)
     }
     /// Takes Year, Month, and Day
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
-    pub fn from_calendar(y: u64, m: u8, d: f64) -> Self {
-        let (mut year, mut month, day): (f64, f64, f64) = (y as f64, m as f64, d);
+    pub fn from_calendar(y: u64, m: u8, d: u8, t: Period) -> Self {
+        let (mut year, mut month, day): (f64, f64, u8) = (y as f64, m as f64, d);
         if month < 3.0 {
             year -= 1.0;
             month += 12.0;
@@ -356,11 +357,11 @@ impl Date {
         })
         .trunc();
 
-        Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day + 1_720_994.5)
+        Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day as f64 + t.turns() + 1_720_994.5)
     }
     /// Gets the time of day in a current calendar date
     pub fn time(self) -> Period {
-    	Period::from_decimal(self.calendar().2.fract()*24.0)
+        self.calendar().3
     }
 
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
@@ -399,10 +400,13 @@ mod tests {
     fn test_julian() {
         assert_eq!(
             Date::from_julian(2_446_113.75),
-            Date::from_calendar(1985, 2, 17.25)
+            Date::from_calendar(1985, 2, 17, Period::from_decimal(6.0))
         );
-        assert_eq!(Date::from_julian(2_446_113.75).calendar(), (1985, 2, 17.25));
-        assert_eq!(Date::from_calendar(1967, 04, 12.6).time().decimal(), 14.400000002235174);
+        assert_eq!(Date::from_julian(2_446_113.75).calendar(), (1985, 2, 17, Period::from_decimal(6.0)));
+        assert_eq!(
+            Date::from_calendar(1967, 04, 12, Period::from_turns(0.6)).time().decimal(),
+            14.400000002235174
+        );
     }
 
     #[test]

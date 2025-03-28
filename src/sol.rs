@@ -439,8 +439,8 @@ mod tests {
     #[test]
     fn test_lambdasun() {
         assert_eq!(
-            sun::location(time::Date::from_calendar(1980, 7, 27.0))
-                .ecliptic(time::Date::from_calendar(1980, 7, 27.0))
+            sun::location(time::Date::from_calendar(1980, 7, 27, time::Period::default()))
+                .ecliptic(time::Date::from_calendar(1980, 7, 27, time::Period::default()))
                 .0,
             time::Period::from_degminsec(124, 23, 40.8)
         )
@@ -449,7 +449,7 @@ mod tests {
     #[test]
     fn test_planet() {
         assert_eq!(
-            VENUS.location(time::Date::from_calendar(2025, 3, 12.0)),
+            VENUS.location(time::Date::from_calendar(2025, 3, 12, time::Period::default())),
             coord::Coord::from_equatorial(
                 time::Period::from_clock(0, 17, 44.5),
                 time::Period::from_degminsec(10, 54, 50.7)
@@ -475,23 +475,23 @@ mod tests {
     #[test]
     fn test_phase() {
         assert_eq!(
-            VENUS.illumfrac(time::Date::from_calendar(2025, 03, 24.0)),
+            VENUS.illumfrac(time::Date::from_calendar(2025, 03, 24, time::Period::default())),
             0.010588440315090597
         );
         assert_eq!(
-            MARS.illumfrac(time::Date::from_calendar(2025, 03, 24.0)),
+            MARS.illumfrac(time::Date::from_calendar(2025, 03, 24, time::Period::default())),
             0.9097044984005929
         );
         assert_eq!(
-            VENUS.illumfrac(time::Date::from_calendar(1996, 07, 22.0)),
+            VENUS.illumfrac(time::Date::from_calendar(1996, 07, 22, time::Period::default())),
             0.2930458224882831
         );
         assert_eq!(
-            VENUS.illumfrac(time::Date::from_calendar(1996, 06, 22.0)),
+            VENUS.illumfrac(time::Date::from_calendar(1996, 06, 22, time::Period::default())),
             0.04343209659342473
         );
         assert_eq!(
-            VENUS.illumfrac(time::Date::from_calendar(1996, 06, 22.0)),
+            VENUS.illumfrac(time::Date::from_calendar(1996, 06, 22, time::Period::default())),
             0.04343209659342473
         );
     }

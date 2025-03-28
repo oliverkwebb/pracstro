@@ -161,7 +161,7 @@ mod tests {
         );
         assert_eq!(
             arcturus.horizon(
-                Date::from_calendar(2025, 3, 10.0),
+                Date::from_calendar(2025, 3, 10, Period::default()),
                 Period::from_clock(19, 52, 25.0),
                 Period::from_degrees(55.47885),
                 Period::from_degrees(133.94531)
@@ -173,7 +173,7 @@ mod tests {
         );
         assert_eq!(
             sirius.horizon(
-                Date::from_calendar(2025, 3, 7.0),
+                Date::from_calendar(2025, 3, 7, Period::default()),
                 Period::from_clock(23, 36, 52.0),
                 Period::from_degrees(5.0),
                 Period::from_degrees(-1.0)
@@ -185,7 +185,7 @@ mod tests {
         );
         assert_eq!(
             sirius.horizon(
-                Date::from_calendar(2025, 3, 11.0),
+                Date::from_calendar(2025, 3, 11, Period::default()),
                 Period::from_clock(2, 0, 0.0),
                 Period::from_degrees(44.8714),
                 Period::from_degrees(-93.20801)
@@ -199,7 +199,7 @@ mod tests {
             Coord::from_horizon(
                 Period::from_degminsec(184, 42, 2.3),
                 Period::from_degminsec(29, 45, 27.2),
-                Date::from_calendar(2025, 3, 11.0),
+                Date::from_calendar(2025, 3, 11, Period::default()),
                 Period::from_clock(2, 0, 0.0),
                 Period::from_degrees(44.8714),
                 Period::from_degrees(-93.20801)
@@ -217,7 +217,7 @@ mod tests {
         );
         assert_eq!(
             c.riseset(
-                Date::from_calendar(1980, 8, 24.0),
+                Date::from_calendar(1980, 8, 24, Period::default()),
                 Period::from_degrees(30.0),
                 Period::from_degrees(64.0)
             ),
@@ -228,7 +228,7 @@ mod tests {
         );
         assert_eq!(
             c.riseset(
-                Date::from_calendar(1980, 8, 24.0),
+                Date::from_calendar(1980, 8, 24, Period::default()),
                 Period::from_degrees(-90.0),
                 Period::from_degrees(0.0),
             ),
@@ -243,7 +243,7 @@ mod tests {
             Period::from_degminsec(19, 32, 14.2),
         );
         assert_eq!(
-            star1.ecliptic(Date::from_calendar(1950, 0, 1.0)),
+            star1.ecliptic(Date::from_calendar(1950, 0, 1, Period::default())),
             (
                 Period::from_degminsec(139, 41, 10.0),
                 Period::from_degminsec(4, 52, 31.0)
@@ -253,7 +253,7 @@ mod tests {
             Coord::from_ecliptic(
                 Period::from_degminsec(139, 41, 10.0),
                 Period::from_degminsec(4, 52, 31.0),
-                Date::from_calendar(1950, 0, 1.0)
+                Date::from_calendar(1950, 0, 1, Period::default())
             ),
             star1
         );

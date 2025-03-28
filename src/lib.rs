@@ -9,7 +9,7 @@ of celestial objects, such as the moon, sun, planets, and stars.
 ```
 use pracstro::*;
 
-let now_date = time::Date::from_calendar(2025, 4, 16.0);
+let now_date = time::Date::from_calendar(2025, 4, 16, time::Period::from_clock(0, 0, 0.0));
 let now_time = time::Period::from_clock(19, 41, 11.0);
 let my_latitude = time::Period::from_degrees(30.5);
 let my_longitude = time::Period::from_degrees(-110.0);
