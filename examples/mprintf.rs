@@ -29,7 +29,10 @@ fn phaseidx(ilumfrac: f64, mage: f64) -> usize {
 }
 
 fn main() {
-    let p = moon::MOON.phase(time::Date::now());
+    let p = (
+        moon::MOON.illumfrac(time::Date::now()),
+        moon::MOON.phaseage(time::Date::now()),
+    );
     println!(
         "{} {} ({:.2}%)",
         PNAMES[phaseidx(p.0, p.1)],

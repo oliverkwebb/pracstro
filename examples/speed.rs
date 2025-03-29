@@ -25,6 +25,6 @@ fn main() {
     }
     run_test("Full ephemeris", n, ephem);
     run_test("Moon Phase", n, || {
-        moon::MOON.phase(time::Date::now());
+        moon::MOON.illumfrac(time::Date::now());
     });
 }

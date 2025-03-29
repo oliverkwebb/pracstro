@@ -15,7 +15,7 @@ let my_latitude = time::Period::from_degrees(30.5);
 let my_longitude = time::Period::from_degrees(-110.0);
 
 sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
-moon::MOON.phase(now_date).0; // The illuminated fraction of the moons surface
+moon::MOON.illumfrac(now_date); // The illuminated fraction of the moons surface
 time::Period::from_degrees(120.0).clock(); // 16h00m00s
 ```
 
@@ -57,8 +57,4 @@ pub mod coord;
 
 pub mod sol;
 
-/// Lunar Dynamics
 pub mod moon;
-
-/// Utility Functions
-pub mod misc;

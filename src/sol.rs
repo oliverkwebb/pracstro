@@ -43,6 +43,11 @@ impl Sun {
         (tx * tx + ty * ty + tz * tz).sqrt()
     }
 
+    /// Calculate the angular diameter of the sun
+    pub fn angdia(&self, d: time::Date) -> time::Period {
+        time::Period::from_degrees(0.738076923) / self.distance(d)
+    }
+
     /// Visual Magnitude of the sun
     pub fn magnitude(&self, d: time::Date) -> f64 {
         5.0 * self.distance(d).log10() - 26.74
