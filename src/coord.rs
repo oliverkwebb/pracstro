@@ -38,11 +38,11 @@ Additional Methods:
 pub struct Coord(Period, Period);
 impl Coord {
     /// Right Ascension and Declination
-    pub fn equatorial(self) -> (Period, Period) {
+    pub const fn equatorial(self) -> (Period, Period) {
         (self.0, self.1)
     }
     /// Right Ascension and Declination
-    pub fn from_equatorial(x: Period, y: Period) -> Self {
+    pub const fn from_equatorial(x: Period, y: Period) -> Self {
         Coord(x, y)
     }
 

@@ -11,17 +11,9 @@
 //! time::Date::from_calendar(2024, 06, 30, time::Period::from_clock(16, 30, 0.0)).julian(); // Gets the julian date at 2024-06-30T16:30:00Z
 //! ```
 
+use std::f64::consts::{PI, TAU};
 use std::fmt;
-use std::ops::{Add, Sub};
-
-/// True Modulus Operation, Least Positive Residue
-fn lpr(x: f64, y: f64) -> f64 {
-    let z = x % y;
-    match z < 0.0 {
-        true => z + y,
-        false => z,
-    }
-}
+use std::ops::{Add, Div, Mul, Sub};
 
 /**
 Angles and Time are the most prominent use for this type
@@ -43,7 +35,7 @@ Additional Methods:
 * GST Correction: [`Period::gst()`] and [`Period::ungst()`]
 * Inverse of angle: [`Period::inverse()`]
 */
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialOrd)]
 pub struct Period(f64);
 impl Period {
     /// Returns the angle as radians.
@@ -53,7 +45,7 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_degrees(180.0).radians(); // Pi
     /// ```
-    pub fn radians(self) -> f64 {
+    pub const fn radians(self) -> f64 {
         self.0
     }
     /// Constructs a angle from radians, reducing it to the range of \[0, 2*PI\].
@@ -64,8 +56,12 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_radians(std::f64::consts::PI).degrees(); // 180.0
     /// ```
-    pub fn from_radians(x: f64) -> Self {
-        Period(lpr(x, std::f64::consts::TAU))
+    pub const fn from_radians(x: f64) -> Self {
+        const fn lpr(x: f64, y: f64) -> f64 {
+            let z = x % y;
+            z + if z < 0.0 { y } else { 0.0 }
+        }
+        Period(lpr(x, TAU))
     }
     /// Converts angles internally so that formatting them as latitudes makes sense
     ///
@@ -77,9 +73,9 @@ impl Period {
     /// Period::from_degrees(-25.0).degrees(); // 335.0
     /// Period::from_degrees(-25.0).to_latitude().degrees(); // -25.0
     /// ```
-    pub fn to_latitude(self) -> Self {
-        match self.radians() > std::f64::consts::PI {
-            true => Period(self.radians() - std::f64::consts::TAU),
+    pub const fn to_latitude(self) -> Self {
+        match self.radians() > PI {
+            true => Period(self.radians() - TAU),
             false => self,
         }
     }
@@ -92,7 +88,7 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_degrees(-25.0).degrees(); // 335.0
     /// ```
-    pub fn degrees(self) -> f64 {
+    pub const fn degrees(self) -> f64 {
         self.radians().to_degrees()
     }
     /// Constructs an angle from fractional degrees.
@@ -103,21 +99,21 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_degrees(-25.0).degrees(); // 335.0
     /// ```
-    pub fn from_degrees(x: f64) -> Self {
+    pub const fn from_degrees(x: f64) -> Self {
         Period::from_radians(x.to_radians())
     }
 
     /// Returns the angle in the range between 0 and 1 (i.e. turns)
     ///
     /// Used in the calculation for the illuminated fraction of planets
-    pub fn turns(self) -> f64 {
-        self.degrees() / 360.0
+    pub const fn turns(self) -> f64 {
+        self.radians() / TAU
     }
     /// Constructs an angle from a value between 0 and 1
     ///
     /// Used in the calculation for the illuminated fraction of planets
-    pub fn from_turns(x: f64) -> Self {
-        Self::from_degrees(x * 360.0)
+    pub const fn from_turns(x: f64) -> Self {
+        Self::from_radians(x * TAU)
     }
 
     /// Returns the angle in fractional number of hours
@@ -127,7 +123,7 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_degrees(120.0).decimal(); // 8.0
     /// ```
-    pub fn decimal(self) -> f64 {
+    pub const fn decimal(self) -> f64 {
         self.degrees() / 15.0 // 1 hour <-> 15 degrees, 360/24 = 15
     }
     /// Constructs an angle from a fractional number of hours
@@ -137,7 +133,7 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_decimal(8.0).degrees(); // 120.00
     /// ```
-    pub fn from_decimal(x: f64) -> Self {
+    pub const fn from_decimal(x: f64) -> Self {
         Period::from_degrees(x * 15.0)
     }
 
@@ -186,22 +182,20 @@ impl Period {
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
     pub fn gst(self, date: Date) -> Self {
         let t = date.centuries();
-        let t0 = lpr(
-            6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)),
-            24.0,
-        );
-        Period::from_decimal(lpr(t0 + (self.decimal() * 1.002737909), 24.0))
+        Period::from_decimal(
+            6.697374558
+                + (2400.051336 * t)
+                + (0.000025862 * (t * t))
+                + (self.decimal() * 1.002737909),
+        )
     }
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
     pub fn ungst(self, date: Date) -> Self {
         let t = date.centuries();
-        let t0 = lpr(
-            6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)),
-            24.0,
-        );
-        Period::from_decimal(lpr(self.decimal() - t0, 24.0) * 0.9972695663)
+        let t0 = Period::from_decimal(6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)));
+        (self - t0) * 0.9972695663
     }
 
     /// Gets the hour angle from the angle as if it were a right ascension, and vice versa.
@@ -237,7 +231,7 @@ impl Period {
     }
     /// Reverses the angle
     pub fn inverse(self) -> Self {
-        Period::from_degrees(360.0 - self.degrees())
+        Period::from_radians(TAU - self.radians())
     }
 }
 /// Used in testing
@@ -270,6 +264,20 @@ impl Sub<Period> for Period {
         Period::from_radians(self.radians() - x.radians())
     }
 }
+impl Mul<f64> for Period {
+    type Output = Period;
+    /// Multiplication
+    fn mul(self, x: f64) -> Self {
+        Period::from_radians(self.radians() * x)
+    }
+}
+impl Div<f64> for Period {
+    type Output = Period;
+    /// Multiplication
+    fn div(self, x: f64) -> Self {
+        Period::from_radians(self.radians() / x)
+    }
+}
 
 /**
 Continuous Instant in Time
@@ -289,27 +297,27 @@ impl Date {
     /// Direct interface to type
     ///
     /// This is the only function that should directly read the fields of the type
-    pub fn julian(self) -> f64 {
+    pub const fn julian(self) -> f64 {
         self.0
     }
     /// Direct interface to type
     ///
     /// This is the only function that should directly write the fields of the type
-    pub fn from_julian(x: f64) -> Self {
+    pub const fn from_julian(x: f64) -> Self {
         Date(x)
     }
 
     /// Returns Julian Centuries since 1900.
     ///
     /// Used heavily in astronomical estimation of things that change slowly
-    pub fn centuries(self) -> f64 {
+    pub const fn centuries(self) -> f64 {
         (self.julian() - 2451545.0) / 36525.0
     }
 
     /// Returns Year, Month, Day (time is Period::from_decimal(day.fract()))
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
-    pub fn calendar(self) -> (u32, u8, u8, Period) {
+    pub fn calendar(self) -> (i64, u8, u8, Period) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
@@ -318,58 +326,53 @@ impl Date {
             i + 1.0 + a - (a / 4.0).trunc()
         } else {
             1.0
-        };
+        } + 1524.0;
 
-        let c = b + 1524.0;
-        let d = ((c - 122.2) / 365.25).trunc();
+        let d = ((b - 122.2) / 365.25).trunc();
         let e = (365.25 * d).trunc();
-        let g = ((c - e) / 30.6001).trunc();
+        let g = ((b - e) / 30.6001).trunc();
 
         let m = if g < 13.5 { g - 1.0 } else { g - 13.0 };
         let y = if m > 2.5 { d - 4716.0 } else { d - 4715.0 };
-        let d = c - e + f - (30.6001 * g).trunc();
-        let t = Period::from_turns(d.fract());
+        let d = b - e + f - (30.6001 * g).trunc();
 
-        (y as u32, m as u8, d as u8, t)
+        (y as i64, m as u8, d as u8, Period::from_turns(d.fract()))
     }
     /// Takes Year, Month, and Day
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
-    pub fn from_calendar(y: u64, m: u8, d: u8, t: Period) -> Self {
-        let (mut year, mut month, day): (f64, f64, u8) = (y as f64, m as f64, d);
-        if month < 3.0 {
-            year -= 1.0;
-            month += 12.0;
-        }
-        let (yp, mp) = (year, month);
+    pub fn from_calendar(y: i64, m: u8, day: u8, t: Period) -> Self {
+        let (year, month) = if m < 3 { (y - 1, m + 12) } else { (y, m) };
 
-        let b = if year >= 1582.0 {
-            let a = (yp / 100.0).trunc();
-            2.0 - a + (a / 4.0).trunc()
-        } else {
-            0.0
-        };
-
-        let c = (if yp < 0.0 {
-            (365.25 * yp) - 0.75
-        } else {
-            365.25 * yp
-        })
-        .trunc();
-
-        Date::from_julian(b + c + (30.6001 * (mp + 1.0)).trunc() + day as f64 + t.turns() + 1_720_994.5)
+        Date::from_julian(
+            if year >= 1582 {
+                2 - (year / 100) + (year / 400)
+            } else {
+                0
+            } as f64
+                + (365.25 * year as f64 - if year < 0 { 0.75 } else { 0.0 }).trunc()
+                + (30.6001 * (month + 1) as f64).trunc()
+                + day as f64
+                + t.turns()
+                + 1_720_994.5,
+        )
     }
     /// Gets the time of day in a current calendar date
     pub fn time(self) -> Period {
         self.calendar().3
     }
+    /// Constructs a date out of a date and a time.
+    pub fn from_time(d: Self, t: Period) -> Self {
+        let (y, m, d, _) = d.calendar();
+        Self::from_calendar(y, m, d, t)
+    }
 
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
-    pub fn unix(self) -> f64 {
+    pub const fn unix(self) -> f64 {
         (self.julian() - 2440587.5) * 86400.0
     }
     /// Interface for unix time, Does not correct for the 1582 Julain/Gregorian split
-    pub fn from_unix(t: f64) -> Self {
+    pub const fn from_unix(t: f64) -> Self {
         Date::from_julian((t / 86400.0) + 2440587.5)
     }
 
@@ -391,20 +394,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lpr() {
-        assert_eq!(lpr(-1.0, 5.0), 4.0);
-        assert_eq!(lpr(7.0, 5.0), 2.0);
-    }
-
-    #[test]
     fn test_julian() {
         assert_eq!(
             Date::from_julian(2_446_113.75),
             Date::from_calendar(1985, 2, 17, Period::from_decimal(6.0))
         );
-        assert_eq!(Date::from_julian(2_446_113.75).calendar(), (1985, 2, 17, Period::from_decimal(6.0)));
         assert_eq!(
-            Date::from_calendar(1967, 04, 12, Period::from_turns(0.6)).time().decimal(),
+            Date::from_julian(2_446_113.75).calendar(),
+            (1985, 2, 17, Period::from_decimal(6.0))
+        );
+        assert_eq!(
+            Date::from_calendar(1967, 04, 12, Period::from_turns(0.6))
+                .time()
+                .decimal(),
             14.400000002235174
         );
     }
