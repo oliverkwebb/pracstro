@@ -23,7 +23,7 @@ pub struct Sun;
 /// The Sun
 pub const SUN: Sun = Sun;
 impl Sun {
-    /// The rectangular coordinates of the sun relative to the earth
+    /// The rectangular coordinates of the sun relative to the earth, in AU
     ///
     /// The inverse of the location of the earth relative to the sun
     pub fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {
@@ -87,7 +87,7 @@ pub struct Planet {
     pub v0: f64,
 }
 impl Planet {
-    /// Returns the location of the planets as rectangular coordinates as relative to the Sun
+    /// Returns the location of the planets as rectangular coordinates as relative to the Sun, in AU
     ///
     /// From <https://ssd.jpl.nasa.gov/planets/approx_pos.html>
     pub fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {
@@ -181,17 +181,18 @@ impl Planet {
         let sep = SUN.location(d).dist(self.location(d));
         let (tx, ty, tz) = self.locationcart(d);
         let sp = (tx * tx + ty * ty + tz * tz).sqrt();
-        time::Period::asin(SUN.distance(d) * (sep.sin() / sp))
+        let upa = time::Period::asin(SUN.distance(d) * (sep.sin() / sp));
+        if self.number < 2 {
+            upa
+        } else {
+            upa + time::Period::from_degrees(180.0)
+        }
     }
 
     /// Gets the illuminated fraction of the planets surface
     pub fn illumfrac(&self, d: time::Date) -> f64 {
         // Todo: Replace one with distance to the sun in AU
-        if self.number > 2 {
-            0.5 * (1.0 + self.phaseangle(d).cos())
-        } else {
-            0.5 * (1.0 - self.phaseangle(d).cos())
-        }
+        0.5 * (1.0 - self.phaseangle(d).cos())
     }
 }
 

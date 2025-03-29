@@ -7,6 +7,7 @@ use crate::{coord, sol, time};
 /// The data contained in this is floating point instead of the Time/Coordinate types provided because static
 /// Time/Angle/Coordinate data using those types is unpleasant to construct. And because the code I've written before
 /// works with floats.
+#[derive(Copy, Clone)]
 pub struct Moon {
     /// The epoch on which this data is based off
     pub epoch: f64,
@@ -131,6 +132,11 @@ impl Moon {
     pub fn parallax(self, d: time::Date) -> time::Period {
         self.pi0 / self.distance(d)
     }
+
+    /// Magnitude of the moon
+    pub fn magnitude(self, d: time::Date) -> f64 {
+        5.0 * (self.distance(d) / self.illumfrac(d).sqrt()).log10() + 0.21
+    }
 }
 
 #[cfg(test)]
@@ -167,6 +173,15 @@ mod tests {
                 time::Period::default()
             )),
             0.8694887493109439
+        );
+        assert_eq!(
+            MOON.magnitude(time::Date::from_calendar(
+                2024,
+                12,
+                25,
+                time::Period::default()
+            )),
+            -11.366493493867907
         );
     }
 
