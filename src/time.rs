@@ -390,6 +390,7 @@ impl Date {
 }
 
 /// A interval of time
+#[derive(Clone, Debug, PartialEq)]
 pub struct TimeStep {
     year: f64,
     month: f64,
