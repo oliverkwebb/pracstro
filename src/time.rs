@@ -325,7 +325,7 @@ impl Date {
             let a = ((i - 1867216.25) / 36524.25).trunc();
             i + 1.0 + a - (a / 4.0).trunc()
         } else {
-            1.0
+            i
         } + 1524.0;
 
         let d = ((b - 122.2) / 365.25).trunc();
@@ -389,6 +389,38 @@ impl Date {
     }
 }
 
+/// A interval of time
+pub struct TimeStep {
+    year: f64,
+    month: f64,
+    day: f64,
+    hour: f64,
+    minute: f64,
+    second: f64,
+}
+
+impl From<(f64, f64, f64, f64, f64, f64)> for TimeStep {
+    fn from(s: (f64, f64, f64, f64, f64, f64)) -> TimeStep {
+        TimeStep {
+            year: s.0,
+            month: s.1,
+            day: s.2,
+            hour: s.3,
+            minute: s.4,
+            second: s.5,
+        }
+    }
+}
+
+impl Add<TimeStep> for Date {
+    type Output = Date;
+
+    fn add(self, t: TimeStep) -> Date {
+        let (oy, omon, oday, ot) = self.calendar();
+        self
+    }
+}
+
 /// Calculate the date of Easter
 pub fn easter(year: i32) -> (i32, i32) {
     let a = year % 19;
@@ -422,6 +454,18 @@ mod tests {
                 .time()
                 .decimal(),
             14.400000002235174
+        );
+    }
+
+    #[test]
+    fn test_calendar() {
+        assert_eq!(
+            Date::from_calendar(1000, 10, 20, Period::default()).calendar(),
+            (1000, 10, 20, Period::default())
+        );
+        assert_eq!(
+            Date::from_calendar(1000, 14, 20, Period::default()).calendar(),
+            (1001, 2, 20, Period::default())
         );
     }
 
