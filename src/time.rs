@@ -417,7 +417,15 @@ impl Add<TimeStep> for Date {
 
     fn add(self, t: TimeStep) -> Date {
         let (oy, omon, oday, ot) = self.calendar();
-        self
+        let stepseconds = (t.hour * 3600.0) + (t.minute * 60.0) + t.second;
+        let newseconds = stepseconds + (ot.turns() * 86400.0);
+        let carry = (newseconds / 86400.0).trunc();
+        Date::from_calendar(
+            oy + t.year as i64,
+            omon + t.month as u8,
+            oday + carry as u8 + t.day as u8,
+            Period::from_turns((newseconds / 86400.0) % 1.0),
+        )
     }
 }
 
@@ -438,6 +446,15 @@ pub fn easter(year: i32) -> (i32, i32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_step() {
+        let s1 = TimeStep::from((0.0, 0.0, 0.0, 12.0, 0.0, 30.0));
+        assert_eq!(
+            Date::from_calendar(1200, 2, 4, Period::from_clock(18, 0, 0.0)) + s1,
+            Date::from_calendar(1200, 2, 5, Period::from_clock(6, 0, 30.0))
+        );
+    }
 
     #[test]
     fn test_julian() {
