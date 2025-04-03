@@ -1,6 +1,6 @@
 [package]
 name = "pracstro"
-version = "0.4.3"
+version = "0.5.1"
 authors = ["Oliver Webb <oliverwebb8192@gmail.com>"]
 description = "A simplistic library for astronomy"
 edition = "2021"
