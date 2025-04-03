@@ -255,7 +255,11 @@ impl Period {
     ///
     /// This should only be used on the altitude value of a horizontal coordinate.
     pub fn refract(self) -> Self {
-        self + self.refractdelta()
+        if self.to_latitude().degrees() > 0.0 {
+            self + self.refractdelta()
+        } else {
+            self
+        }
     }
 }
 /// Used in testing
@@ -508,6 +512,10 @@ mod tests {
         assert_eq!(
             Period::from_degrees(25.0).refractdelta(),
             Period::from_degminsec(0, 2, 9.2)
+        );
+        assert_eq!(
+            Period::from_degrees(-25.0).refract(),
+            Period::from_degminsec(-25, 0, 0.0)
         );
     }
 }
