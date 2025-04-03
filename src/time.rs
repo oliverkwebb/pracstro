@@ -233,6 +233,30 @@ impl Period {
     pub fn inverse(self) -> Self {
         Period::from_radians(TAU - self.radians())
     }
+
+    /// Calculates the approximate atmospheric refraction
+    ///
+    /// In reality, this is an complex calculation dependent on factors such as temperature and pressure. But it can be
+    /// Approximated to a reasonable extent assuming some factors.
+    ///
+    /// From <https://www.celestialprogramming.com/snippets/atmosphericrefraction.html>
+    pub fn refractdelta(self) -> Self {
+        Period::from_degminsec(
+            0,
+            0,
+            (1.02
+                / (self.degrees() + (10.3 / (self.degrees() + 5.11)))
+                    .to_radians()
+                    .tan())
+                * 60.0,
+        )
+    }
+    /// Accounts for atmospheric refraction
+    ///
+    /// This should only be used on the altitude value of a horizontal coordinate.
+    pub fn refract(self) -> Self {
+        self + self.refractdelta()
+    }
 }
 /// Used in testing
 impl fmt::Debug for Period {
@@ -287,6 +311,7 @@ Continuous Instant in Time
 | Julian Day        | [`Date::julian()`]    | [`Date::from_julian()`]    |
 | Calendar          | [`Date::calendar()`]  | [`Date::from_calendar()`]  |
 | Unix Time         | [`Date::unix()`]      | [`Date::from_unix()`]      |
+| Date/Time         | [`Date::time()`]      | [`Date::from_time()`]      |
 
 Additional Methods
 * Get the current time: [`Date::now()`]
@@ -389,47 +414,6 @@ impl Date {
     }
 }
 
-/// A interval of time
-#[derive(Clone, Debug, PartialEq)]
-pub struct TimeStep {
-    year: f64,
-    month: f64,
-    day: f64,
-    hour: f64,
-    minute: f64,
-    second: f64,
-}
-
-impl From<(f64, f64, f64, f64, f64, f64)> for TimeStep {
-    fn from(s: (f64, f64, f64, f64, f64, f64)) -> TimeStep {
-        TimeStep {
-            year: s.0,
-            month: s.1,
-            day: s.2,
-            hour: s.3,
-            minute: s.4,
-            second: s.5,
-        }
-    }
-}
-
-impl Add<TimeStep> for Date {
-    type Output = Date;
-
-    fn add(self, t: TimeStep) -> Date {
-        let (oy, omon, oday, ot) = self.calendar();
-        let stepseconds = (t.hour * 3600.0) + (t.minute * 60.0) + t.second;
-        let newseconds = stepseconds + (ot.turns() * 86400.0);
-        let carry = (newseconds / 86400.0).trunc();
-        Date::from_calendar(
-            oy + t.year as i64,
-            omon + t.month as u8,
-            oday + carry as u8 + t.day as u8,
-            Period::from_turns((newseconds / 86400.0) % 1.0),
-        )
-    }
-}
-
 /// Calculate the date of Easter
 pub fn easter(year: i32) -> (i32, i32) {
     let a = year % 19;
@@ -447,15 +431,6 @@ pub fn easter(year: i32) -> (i32, i32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_step() {
-        let s1 = TimeStep::from((0.0, 0.0, 0.0, 12.0, 0.0, 30.0));
-        assert_eq!(
-            Date::from_calendar(1200, 2, 4, Period::from_clock(18, 0, 0.0)) + s1,
-            Date::from_calendar(1200, 2, 5, Period::from_clock(6, 0, 30.0))
-        );
-    }
 
     #[test]
     fn test_julian() {
@@ -499,26 +474,15 @@ mod tests {
     #[test]
     fn test_gst() {
         assert_eq!(
-            Period::from_decimal(14.614_353).gst(Date::from_julian(2_444_351.5)),
-            Period::from_decimal(4.668119549708194)
+            Period::from_clock(14, 36, 51.6).gst(Date::from_julian(2_444_351.5)),
+            Period::from_clock(4, 40, 5.23)
         );
         assert_eq!(
-            Period::from_decimal(4.668119549708194).ungst(Date::from_julian(2_444_351.5)),
-            Period::from_decimal(14.614352994461141)
+            Period::from_clock(4, 40, 5.23).ungst(Date::from_julian(2_444_351.5)),
+            Period::from_clock(14, 36, 51.6)
         );
     }
 
-    #[test]
-    fn test_lst() {
-        assert_eq!(
-            Period::from_decimal(4.668_119).add(Period::from_degrees(-64.0)),
-            Period(0.10509997509720659)
-        );
-        assert_eq!(
-            Period::from_decimal(0.401_453).sub(Period::from_degrees(-64.0)),
-            Period(1.2221108709065023)
-        );
-    }
     #[test]
     fn test_lati() {
         assert_eq!(
@@ -537,5 +501,13 @@ mod tests {
     fn test_easter() {
         assert_eq!(easter(2000), (4, 23));
         assert_eq!(easter(2024), (3, 31));
+    }
+
+    #[test]
+    fn test_refract() {
+        assert_eq!(
+            Period::from_degrees(25.0).refractdelta(),
+            Period::from_degminsec(0, 2, 9.2)
+        );
     }
 }

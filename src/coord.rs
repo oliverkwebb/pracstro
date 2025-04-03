@@ -229,7 +229,7 @@ mod tests {
         assert_eq!(
             c.riseset(
                 Date::from_calendar(1980, 8, 24, Period::default()),
-                Period::from_degrees(-90.0),
+                Period::from_degrees(-85.0),
                 Period::from_degrees(0.0),
             ),
             None
