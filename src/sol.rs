@@ -45,7 +45,7 @@ impl Sun {
 
     /// Calculate the angular diameter of the sun
     pub fn angdia(&self, d: time::Date) -> time::Period {
-        time::Period::from_degrees(0.738076923) / self.distance(d)
+        time::Period::from_degrees(0.5333333333) / self.distance(d)
     }
 
     /// Visual Magnitude of the sun

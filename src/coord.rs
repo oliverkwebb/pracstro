@@ -139,6 +139,22 @@ impl Coord {
         let lstr = (ra + h - longi).ungst(date);
         Some((lsts, lstr))
     }
+
+    /// (Roughly) Accounts for precession in coordinates.
+    pub fn precess(self, epoch: Date, d: Date) -> Self {
+        let (ra, de) = self.equatorial();
+        let diff = (d.julian() - epoch.julian()) / 365.25;
+        let m = Period::from_clock(0, 0, 3.07234)
+            + Period::from_clock(0, 0, 0.00186) * epoch.centuries();
+        let n = Period::from_degminsec(0, 0, 20.0468)
+            + Period::from_degminsec(0, 0, 0.0085) * epoch.centuries();
+        let deltara = m.degrees() + n.degrees() * ra.sin() * de.tan();
+        let deltade = n.degrees() * ra.cos();
+        Coord::from_equatorial(
+            ra + Period::from_degrees(deltara * diff),
+            de + Period::from_degrees(deltade * diff),
+        )
+    }
 }
 
 #[cfg(test)]
@@ -148,7 +164,7 @@ mod tests {
     // Many of these tests do not conform with data you can pull out of stellarium/other tools, they are correct nonetheless.
     // * How do you know?: By personal confirmation of the result data with other resources
     // * Then how can I use these functions?: In conjunction with the functions for correction (procession, nutation, abberation, refraction)
-    // Note that even without correction, these tests are almost always within 15' (half the moons diameter).
+    // Note that even without correction, these tests are almost always within 16' (half the moons diameter).
     #[test]
     fn test_horiz() {
         let arcturus = Coord::from_equatorial(
@@ -254,6 +270,21 @@ mod tests {
                 Period::from_degminsec(139, 41, 10.0),
                 Period::from_degminsec(4, 52, 31.0),
                 Date::from_calendar(1950, 0, 1, Period::default())
+            ),
+            star1
+        );
+    }
+
+    #[test]
+    fn test_precession() {
+        let star1 = Coord::from_equatorial(
+            Period::from_clock(3, 8, 10.6),
+            Period::from_degminsec(40, 57, 20.2),
+        );
+        assert_eq!(
+            star1.precess(
+                Date::from_calendar(2000, 1, 1, Period::default()),
+                Date::from_calendar(2024, 04, 04, Period::default())
             ),
             star1
         );
