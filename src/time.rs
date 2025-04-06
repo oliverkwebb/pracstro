@@ -159,7 +159,7 @@ impl Period {
     /// use pracstro::time::Period;
     /// Period::from_clock(8, 0, 0.0).decimal(); // 8.0
     /// ```
-    pub fn from_clock(h: u8, m: u8, s: f64) -> Self {
+    pub const fn from_clock(h: u8, m: u8, s: f64) -> Self {
         Period::from_decimal((h as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
@@ -173,7 +173,7 @@ impl Period {
         )
     }
     /// Identical to from_clock in math
-    pub fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
+    pub const fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
         Period::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 

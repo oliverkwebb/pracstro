@@ -60,8 +60,6 @@ impl Sun {
 /// Error is at most 10' for most use, well within range of wanted accuracy.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Planet {
-    /// Planet Number
-    pub number: u8,
     /// Planet Name
     pub name: &'static str,
     /// Semi-Major Axis (AU)
@@ -136,10 +134,6 @@ impl Planet {
     /// Returns coordinates as subtracted from the earths coordinates
     pub fn location(&self, d: time::Date) -> coord::Coord {
         let c = self.locationcart(d);
-        if self.number == 2 {
-            // If we aren't the earth, get the coords of the earth
-            return coord::Coord::default();
-        }
         let e = EARTH.locationcart(d);
 
         coord::Coord::from_cartesian(c.0 - e.0, c.1 - e.1, c.2 - e.2)
@@ -147,10 +141,6 @@ impl Planet {
 
     /// Returns distance in AU
     pub fn distance(&self, d: time::Date) -> f64 {
-        if self.number == 2 {
-            // If we aren't the earth, get the coords of the earth
-            return 0.0;
-        }
         let c = self.locationcart(d);
         let e = EARTH.locationcart(d);
         let (tx, ty, tz) = (c.0 - e.0, c.1 - e.1, c.2 - e.2);
@@ -182,7 +172,7 @@ impl Planet {
         let (tx, ty, tz) = self.locationcart(d);
         let sp = (tx * tx + ty * ty + tz * tz).sqrt();
         let upa = time::Period::asin(SUN.distance(d) * (sep.sin() / sp));
-        if self.number < 2 {
+        if (tx * tx + ty * ty + tz * tz).sqrt() < 1.0 {
             upa
         } else {
             upa + time::Period::from_degrees(180.0)
@@ -198,7 +188,6 @@ impl Planet {
 
 /// Mercury
 pub const MERCURY: Planet = Planet {
-    number: 0,
     name: "Mercury",
     a: 0.38709927,
     e: 0.20563593,
@@ -220,7 +209,6 @@ pub const MERCURY: Planet = Planet {
 };
 /// Venus
 pub const VENUS: Planet = Planet {
-    number: 1,
     name: "Venus",
     a: 0.72333566,
     e: 0.00677672,
@@ -242,7 +230,6 @@ pub const VENUS: Planet = Planet {
 };
 /// Earth (Technically the Earth-Moon Barycenter)
 pub const EARTH: Planet = Planet {
-    number: 2,
     name: "Earth",
     a: 1.00000261,
     e: 0.01671123,
@@ -264,7 +251,6 @@ pub const EARTH: Planet = Planet {
 };
 /// Mars
 pub const MARS: Planet = Planet {
-    number: 3,
     name: "Mars",
     a: 1.52371034,
     e: 0.09339410,
@@ -286,7 +272,6 @@ pub const MARS: Planet = Planet {
 };
 /// Jupiter
 pub const JUPITER: Planet = Planet {
-    number: 4,
     name: "Jupiter",
     a: 5.20248019,
     e: 0.04853590,
@@ -308,7 +293,6 @@ pub const JUPITER: Planet = Planet {
 };
 /// Saturn
 pub const SATURN: Planet = Planet {
-    number: 5,
     name: "Saturn",
     a: 9.54149883,
     e: 0.05550825,
@@ -330,7 +314,6 @@ pub const SATURN: Planet = Planet {
 };
 /// Uranus
 pub const URANUS: Planet = Planet {
-    number: 6,
     name: "Uranus",
     a: 19.18797948,
     e: 0.04685740,
@@ -352,7 +335,6 @@ pub const URANUS: Planet = Planet {
 };
 /// Neptune
 pub const NEPTUNE: Planet = Planet {
-    number: 7,
     name: "Neptune",
     a: 30.06952752,
     e: 0.00895439,
@@ -374,7 +356,6 @@ pub const NEPTUNE: Planet = Planet {
 };
 /// Pluto
 pub const PLUTO: Planet = Planet {
-    number: 8,
     name: "Pluto",
     a: 39.48686035,
     e: 0.24885238,
