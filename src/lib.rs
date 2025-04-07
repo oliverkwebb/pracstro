@@ -9,14 +9,14 @@ of celestial objects, such as the moon, sun, planets, and stars.
 ```
 use pracstro::*;
 
-let now_date = time::Date::from_calendar(2025, 4, 16, time::Period::from_clock(0, 0, 0.0));
-let now_time = time::Period::from_clock(19, 41, 11.0);
-let my_latitude = time::Period::from_degrees(30.5);
-let my_longitude = time::Period::from_degrees(-110.0);
+let now_date = time::Date::from_calendar(2025, 4, 16, time::Angle::from_clock(0, 0, 0.0));
+let now_time = time::Angle::from_clock(19, 41, 11.0);
+let my_latitude = time::Angle::from_degrees(30.5);
+let my_longitude = time::Angle::from_degrees(-110.0);
 
 sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
 moon::MOON.illumfrac(now_date); // The illuminated fraction of the moons surface
-time::Period::from_degrees(120.0).clock(); // 16h00m00s
+time::Angle::from_degrees(120.0).clock(); // 16h00m00s
 ```
 
 # Benchmarks
@@ -42,7 +42,7 @@ This library contains 4 primary modules, which build upon the ones before them:
 
 Each of these have one or two types that represent a certain kind of data:
 - [`Date`](time::Date) - An instant in continuous time.
-- [`Period`](time::Period) - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
+- [`Angle`](time::Angle) - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
 - [`Coord`](coord::Coord) - A pair of angles, representing latitude/longitude on a sphere.
 - [`Planet`](sol::Planet) - A planets orbital properties, along with data required for orbital correction.
 - [`Moon`](moon::Moon) - The moons orbital properties.

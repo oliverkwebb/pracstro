@@ -1,6 +1,16 @@
 /*! Solar Dynamics and handling of planets orbits
 
-This function has one main type, [`Planet`]. With two main methods, [`Planet::distance()`] and [`Planet::location()`].
+This function has two main types, [`Planet`] and [`Sun`] With methods for:
+
+* Cartesian Coordinates
+* Distance from earth
+* Magnitude
+* Angular Diameter
+
+Planets also have methods for:
+
+* Phase angle
+* Illuminated fraction
 
 ```
 use pracstro::{time, sol};
@@ -44,8 +54,8 @@ impl Sun {
     }
 
     /// Calculate the angular diameter of the sun
-    pub fn angdia(&self, d: time::Date) -> time::Period {
-        time::Period::from_degrees(0.5333333333) / self.distance(d)
+    pub fn angdia(&self, d: time::Date) -> time::Angle {
+        time::Angle::from_degrees(0.5333333333) / self.distance(d)
     }
 
     /// Visual Magnitude of the sun
@@ -80,7 +90,7 @@ pub struct Planet {
     pub extra: Option<(f64, f64, f64, f64)>,
     // Physical Properties
     /// Angular Diameter at 1AU (Degrees)
-    pub theta0: time::Period,
+    pub theta0: time::Angle,
     /// Visual Magnitude at 1AU
     pub v0: f64,
 }
@@ -92,16 +102,16 @@ impl Planet {
         let t = d.centuries();
         let a = self.a + self.rates[0] * t;
         let e = self.e + self.rates[1] * t;
-        let i = time::Period::from_degrees(self.i + self.rates[2] * t);
-        let l = time::Period::from_degrees(self.l + self.rates[3] * t);
-        let w = time::Period::from_degrees(self.w + self.rates[4] * t);
-        let o = time::Period::from_degrees(self.o + self.rates[5] * t);
+        let i = time::Angle::from_degrees(self.i + self.rates[2] * t);
+        let l = time::Angle::from_degrees(self.l + self.rates[3] * t);
+        let w = time::Angle::from_degrees(self.w + self.rates[4] * t);
+        let o = time::Angle::from_degrees(self.o + self.rates[5] * t);
         let ww = w - o;
         let mut m = (l - w).degrees();
         if let Some((b, c, s, f)) = self.extra {
             m = m + b * t * t + c * ((f * t).to_radians().cos()) + s * ((f * t).to_radians().sin());
         }
-        m = time::Period::from_degrees(m).to_latitude().degrees();
+        m = time::Angle::from_degrees(m).to_latitude().degrees();
 
         fn kepler(m: f64, e: f64, ee: f64) -> f64 {
             let dm = m - (ee - e.to_degrees() * (ee.to_radians().sin()));
@@ -149,7 +159,7 @@ impl Planet {
     }
 
     /// Returns angular diameter of the planet at current time
-    pub fn angdia(&self, d: time::Date) -> time::Period {
+    pub fn angdia(&self, d: time::Date) -> time::Angle {
         self.theta0 / self.distance(d)
     }
 
@@ -167,15 +177,15 @@ impl Planet {
     /// Gets the phase angle of a planet
     ///
     /// This is simple trig work with the triangle between the planet, earth, and sun.
-    pub fn phaseangle(&self, d: time::Date) -> time::Period {
+    pub fn phaseangle(&self, d: time::Date) -> time::Angle {
         let sep = SUN.location(d).dist(self.location(d));
         let (tx, ty, tz) = self.locationcart(d);
         let sp = (tx * tx + ty * ty + tz * tz).sqrt();
-        let upa = time::Period::asin(SUN.distance(d) * (sep.sin() / sp));
+        let upa = time::Angle::asin(SUN.distance(d) * (sep.sin() / sp));
         if (tx * tx + ty * ty + tz * tz).sqrt() < 1.0 {
             upa
         } else {
-            upa + time::Period::from_degrees(180.0)
+            upa + time::Angle::from_degrees(180.0)
         }
     }
 
@@ -204,7 +214,7 @@ pub const MERCURY: Planet = Planet {
         -0.12534081,
     ],
     extra: None,
-    theta0: time::Period::from_degrees(0.0017972222),
+    theta0: time::Angle::from_degrees(0.0017972222),
     v0: -0.42,
 };
 /// Venus
@@ -225,7 +235,7 @@ pub const VENUS: Planet = Planet {
         -0.27769418,
     ],
     extra: None,
-    theta0: time::Period::from_degrees(0.0047),
+    theta0: time::Angle::from_degrees(0.0047),
     v0: -4.4,
 };
 /// Earth (Technically the Earth-Moon Barycenter)
@@ -246,7 +256,7 @@ pub const EARTH: Planet = Planet {
         0.0,
     ],
     extra: None,
-    theta0: time::Period::from_degrees(180.0),
+    theta0: time::Angle::from_degrees(180.0),
     v0: -12.0,
 };
 /// Mars
@@ -267,7 +277,7 @@ pub const MARS: Planet = Planet {
         -0.29257343,
     ],
     extra: None,
-    theta0: time::Period::from_degrees(0.0026),
+    theta0: time::Angle::from_degrees(0.0026),
     v0: -1.52,
 };
 /// Jupiter
@@ -288,7 +298,7 @@ pub const JUPITER: Planet = Planet {
         0.13024619,
     ],
     extra: Some((-0.00012452, 0.06064060, -0.35635438, 38.35125000)),
-    theta0: time::Period::from_degrees(0.05465),
+    theta0: time::Angle::from_degrees(0.05465),
     v0: -9.4,
 };
 /// Saturn
@@ -309,7 +319,7 @@ pub const SATURN: Planet = Planet {
         -0.25015002,
     ],
     extra: Some((0.00025899, -0.13434469, 0.87320147, 38.35125000)),
-    theta0: time::Period::from_degrees(0.046),
+    theta0: time::Angle::from_degrees(0.046),
     v0: -8.9,
 };
 /// Uranus
@@ -330,7 +340,7 @@ pub const URANUS: Planet = Planet {
         0.05739699,
     ],
     extra: Some((0.00058331, -0.97731848, 0.17689245, 7.67025000)),
-    theta0: time::Period::from_degrees(0.0182777777),
+    theta0: time::Angle::from_degrees(0.0182777777),
     v0: -7.19,
 };
 /// Neptune
@@ -351,7 +361,7 @@ pub const NEPTUNE: Planet = Planet {
         -0.00606302,
     ],
     extra: Some((-0.00041348, 0.68346318, -0.10162547, 7.67025000)),
-    theta0: time::Period::from_degrees(0.0172777777),
+    theta0: time::Angle::from_degrees(0.0172777777),
     v0: -6.87,
 };
 /// Pluto
@@ -372,7 +382,7 @@ pub const PLUTO: Planet = Planet {
         -0.00809981,
     ],
     extra: None,
-    theta0: time::Period::from_degrees(0.0022777777),
+    theta0: time::Angle::from_degrees(0.0022777777),
     v0: -1.0,
 };
 
@@ -399,8 +409,8 @@ mod tests {
         assert_eq!(
             SUN.location(time::Date::from_julian(2268932.541667)),
             coord::Coord::from_equatorial(
-                time::Period::from_degminsec(298, 29, 42.42),
-                time::Period::from_degminsec(-21, 4, 0.91664)
+                time::Angle::from_degminsec(298, 29, 42.42),
+                time::Angle::from_degminsec(-21, 4, 0.91664)
             )
         );
     }
@@ -413,16 +423,16 @@ mod tests {
                 1980,
                 7,
                 27,
-                time::Period::default()
+                time::Angle::default()
             ))
             .ecliptic(time::Date::from_calendar(
                 1980,
                 7,
                 27,
-                time::Period::default()
+                time::Angle::default()
             ))
             .0,
-            time::Period::from_degminsec(124, 23, 40.8)
+            time::Angle::from_degminsec(124, 23, 40.8)
         )
     }
 
@@ -433,18 +443,18 @@ mod tests {
                 2025,
                 3,
                 12,
-                time::Period::default()
+                time::Angle::default()
             )),
             coord::Coord::from_equatorial(
-                time::Period::from_clock(0, 17, 44.5),
-                time::Period::from_degminsec(10, 54, 50.7)
+                time::Angle::from_clock(0, 17, 44.5),
+                time::Angle::from_degminsec(10, 54, 50.7)
             )
         );
         assert_eq!(
             JUPITER.location(time::Date::from_julian(2460748.41871)),
             coord::Coord::from_equatorial(
-                time::Period::from_clock(4, 47, 10.5),
-                time::Period::from_degminsec(22, 01, 7.7)
+                time::Angle::from_clock(4, 47, 10.5),
+                time::Angle::from_degminsec(22, 01, 7.7)
             )
         );
         assert_eq!(
@@ -464,7 +474,7 @@ mod tests {
                 2025,
                 03,
                 24,
-                time::Period::default()
+                time::Angle::default()
             )),
             0.010520980535268565
         );
@@ -473,7 +483,7 @@ mod tests {
                 2025,
                 03,
                 24,
-                time::Period::default()
+                time::Angle::default()
             )),
             0.9103262022711702
         );
@@ -482,7 +492,7 @@ mod tests {
                 1996,
                 07,
                 22,
-                time::Period::default()
+                time::Angle::default()
             )),
             0.30982782608980997
         );

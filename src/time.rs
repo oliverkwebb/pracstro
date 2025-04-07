@@ -3,12 +3,12 @@
 //! This module contains functions for the handling and conversion of Times, Dates, and Angles.
 //!
 //! This data can be represented in two types:
-//! - The [`Period`] type, which represents anything modulo arithmetic should be used to handle
+//! - The [`Angle`] type, which represents anything modulo arithmetic should be used to handle
 //! - The [`Date`] type, which represents an instant in continuous time
 //!
 //! ```rust
-//! use pracstro::*;
-//! time::Date::from_calendar(2024, 06, 30, time::Period::from_clock(16, 30, 0.0)).julian(); // Gets the julian date at 2024-06-30T16:30:00Z
+//! # use pracstro::*;
+//! time::Date::from_calendar(2024, 06, 30, time::Angle::from_clock(16, 30, 0.0)).julian(); // Gets the julian date at 2024-06-30T16:30:00Z
 //! ```
 
 use std::f64::consts::{PI, TAU};
@@ -20,62 +20,63 @@ Angles and Time are the most prominent use for this type
 
 | Property          | To Method               | From Method                  |
 |-------------------|-------------------------|------------------------------|
-| Degrees (Decimal) | [`Period::degrees()`]   | [`Period::from_degrees()`]   |
-| Radians           | [`Period::radians()`]   | [`Period::from_radians()`]   |
-| Turns (\[0,1\])   | [`Period::turns()`]     | [`Period::from_turns()`]     |
-| Hours (Decimal)   | [`Period::decimal()`]   | [`Period::from_decimal()`]   |
-| Clock Time        | [`Period::clock()`]     | [`Period::from_clock()`]     |
-| Degrees (DMS)     | [`Period::degminsec()`] | [`Period::from_degminsec()`] |
-| Sine              | [`Period::sin()`]       | [`Period::asin()`]           |
-| Cosine            | [`Period::cos()`]       | [`Period::acos()`]           |
-| Tangent           | [`Period::tan()`]       | [`Period::atan2()`]          |
+| Degrees (Decimal) | [`Angle::degrees()`]   | [`Angle::from_degrees()`]   |
+| Radians           | [`Angle::radians()`]   | [`Angle::from_radians()`]   |
+| Turns (\[0,1\])   | [`Angle::turns()`]     | [`Angle::from_turns()`]     |
+| Hours (Decimal)   | [`Angle::decimal()`]   | [`Angle::from_decimal()`]   |
+| Clock Time        | [`Angle::clock()`]     | [`Angle::from_clock()`]     |
+| Degrees (DMS)     | [`Angle::degminsec()`] | [`Angle::from_degminsec()`] |
+| Sine              | [`Angle::sin()`]       | [`Angle::asin()`]           |
+| Cosine            | [`Angle::cos()`]       | [`Angle::acos()`]           |
+| Tangent           | [`Angle::tan()`]       | [`Angle::atan2()`]          |
 
 Additional Methods:
-* Latitude displaying: [`Period::to_latitude()`]
-* GST Correction: [`Period::gst()`] and [`Period::ungst()`]
-* Inverse of angle: [`Period::inverse()`]
+* Latitude displaying: [`Angle::to_latitude()`]
+* Inverse of angle: [`Angle::inverse()`]
+* GST Correction: [`Angle::gst()`] and [`Angle::ungst()`]
+* Approx. Atmosphereic Refraction: [`Angle::refract()`] and [`Angle::refractdelta()`]
 */
 #[derive(Clone, Copy, Default, PartialOrd)]
-pub struct Period(f64);
-impl Period {
+pub struct Angle(f64);
+impl Angle {
     /// Returns the angle as radians.
     ///
     /// This is the only function that should directly access the fields of the type.
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_degrees(180.0).radians(); // Pi
+    /// # use pracstro::time::Angle;
+    /// Angle::from_degrees(180.0).radians(); // Pi
     /// ```
     pub const fn radians(self) -> f64 {
         self.0
     }
     /// Constructs a angle from radians, reducing it to the range of \[0, 2*PI\].
     ///
-    /// This is the one of the two only functions that directly access [`Period`].
+    /// This is the one of the two only functions that directly access [`Angle`].
     /// Reduction to the desired range is done with Least Positive Residue instead of the remainder operator.
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_radians(std::f64::consts::PI).degrees(); // 180.0
+    /// # use pracstro::time::Angle;
+    /// Angle::from_radians(std::f64::consts::PI).degrees(); // 180.0
     /// ```
     pub const fn from_radians(x: f64) -> Self {
         const fn lpr(x: f64, y: f64) -> f64 {
             let z = x % y;
             z + if z < 0.0 { y } else { 0.0 }
         }
-        Period(lpr(x, TAU))
+        Angle(lpr(x, TAU))
     }
     /// Converts angles internally so that formatting them as latitudes makes sense
     ///
     /// This should be used directly in conjunction with a formatting function.
     /// The main use case for this is in coordinate handling where angles of latitude can be negative.
-    /// This is the only other function that should be able to directly access [`Period`] than [`Period::from_radians()`].
+    /// This is the only other function that should be able to directly access [`Angle`] than [`Angle::from_radians()`].
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_degrees(-25.0).degrees(); // 335.0
-    /// Period::from_degrees(-25.0).to_latitude().degrees(); // -25.0
+    /// # use pracstro::time::Angle;
+    /// Angle::from_degrees(-25.0).degrees(); // 335.0
+    /// Angle::from_degrees(-25.0).to_latitude().degrees(); // -25.0
     /// ```
     pub const fn to_latitude(self) -> Self {
         match self.radians() > PI {
-            true => Period(self.radians() - TAU),
+            true => Angle(self.radians() - TAU),
             false => self,
         }
     }
@@ -85,8 +86,8 @@ impl Period {
     /// A wrapper around [`f64::to_degrees()`]
     ///
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_degrees(-25.0).degrees(); // 335.0
+    /// # use pracstro::time::Angle;
+    /// Angle::from_degrees(-25.0).degrees(); // 335.0
     /// ```
     pub const fn degrees(self) -> f64 {
         self.radians().to_degrees()
@@ -96,11 +97,11 @@ impl Period {
     /// A wrapper around [`f64::to_radians()`]
     ///
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_degrees(-25.0).degrees(); // 335.0
+    /// # use pracstro::time::Angle;
+    /// Angle::from_degrees(-25.0).degrees(); // 335.0
     /// ```
     pub const fn from_degrees(x: f64) -> Self {
-        Period::from_radians(x.to_radians())
+        Angle::from_radians(x.to_radians())
     }
 
     /// Returns the angle in the range between 0 and 1 (i.e. turns)
@@ -118,31 +119,31 @@ impl Period {
 
     /// Returns the angle in fractional number of hours
     ///
-    /// A wrapper around [`Period::degrees()`] and one division by 15. Since one hour is 15 degrees of rotation
+    /// A wrapper around [`Angle::degrees()`] and one division by 15. Since one hour is 15 degrees of rotation
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_degrees(120.0).decimal(); // 8.0
+    /// # use pracstro::time::Angle;
+    /// Angle::from_degrees(120.0).decimal(); // 8.0
     /// ```
     pub const fn decimal(self) -> f64 {
         self.degrees() / 15.0 // 1 hour <-> 15 degrees, 360/24 = 15
     }
     /// Constructs an angle from a fractional number of hours
     ///
-    /// A wrapper around [`Period::from_degrees()`] and one multiplication by 15. Since one hour is 15 degrees of rotation
+    /// A wrapper around [`Angle::from_degrees()`] and one multiplication by 15. Since one hour is 15 degrees of rotation
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_decimal(8.0).degrees(); // 120.00
+    /// # use pracstro::time::Angle;
+    /// Angle::from_decimal(8.0).degrees(); // 120.00
     /// ```
     pub const fn from_decimal(x: f64) -> Self {
-        Period::from_degrees(x * 15.0)
+        Angle::from_degrees(x * 15.0)
     }
 
     /// Returns (Hour, Minute, Second) of a time/angle
     ///
     /// Used in hour-angle displays for some coordinate systems, and in times.
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_decimal(8.0).clock(); // (8, 0, 0.0)
+    /// # use pracstro::time::Angle;
+    /// Angle::from_decimal(8.0).clock(); // (8, 0, 0.0)
     /// ```
     pub fn clock(self) -> (u8, u8, f64) {
         let y = self.decimal();
@@ -156,11 +157,11 @@ impl Period {
     ///
     /// Used in hour-angle displays for some coordinate systems, and in times.
     /// ```
-    /// use pracstro::time::Period;
-    /// Period::from_clock(8, 0, 0.0).decimal(); // 8.0
+    /// use pracstro::time::Angle;
+    /// Angle::from_clock(8, 0, 0.0).decimal(); // 8.0
     /// ```
     pub const fn from_clock(h: u8, m: u8, s: f64) -> Self {
-        Period::from_decimal((h as f64) + (((m as f64) + (s / 60.0)) / 60.0))
+        Angle::from_decimal((h as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
     /// Converts an angle to a degree with arcminutes and arcseconds
@@ -174,7 +175,7 @@ impl Period {
     }
     /// Identical to from_clock in math
     pub const fn from_degminsec(d: i16, m: u8, s: f64) -> Self {
-        Period::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
+        Angle::from_degrees((d as f64) + (((m as f64) + (s / 60.0)) / 60.0))
     }
 
     /// Handles the discontinuity created by the orbit of the earth as compared to its rotation.
@@ -182,7 +183,7 @@ impl Period {
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
     pub fn gst(self, date: Date) -> Self {
         let t = date.centuries();
-        Period::from_decimal(
+        Angle::from_decimal(
             6.697374558
                 + (2400.051336 * t)
                 + (0.000025862 * (t * t))
@@ -194,44 +195,37 @@ impl Period {
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
     pub fn ungst(self, date: Date) -> Self {
         let t = date.centuries();
-        let t0 = Period::from_decimal(6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)));
+        let t0 = Angle::from_decimal(6.697374558 + (2400.051336 * t) + (0.000025862 * (t * t)));
         (self - t0) * 0.9972695663
     }
 
-    /// Gets the hour angle from the angle as if it were a right ascension, and vice versa.
-    ///
-    /// Used in horizontal coordinates.
-    pub fn hourangle_rightas(self, date: Date, time: Period, longi: Period) -> Self {
-        time.gst(date) + longi - self
-    }
-
-    /// Sine of Period
+    /// Sine of Angle
     pub fn sin(self) -> f64 {
         self.radians().sin()
     }
-    /// Cosine of Period
+    /// Cosine of Angle
     pub fn cos(self) -> f64 {
         self.radians().cos()
     }
-    /// Tangent of Period
+    /// Tangent of Angle
     pub fn tan(self) -> f64 {
         self.radians().tan()
     }
-    /// Period from Arcsine
+    /// Angle from Arcsine
     pub fn asin(x: f64) -> Self {
-        Period::from_radians(x.asin())
+        Angle::from_radians(x.asin())
     }
-    /// Period from Arccosine
+    /// Angle from Arccosine
     pub fn acos(x: f64) -> Self {
-        Period::from_radians(x.acos())
+        Angle::from_radians(x.acos())
     }
-    /// Period from 2-argument Arctangent
+    /// Angle from 2-argument Arctangent
     pub fn atan2(x: f64, y: f64) -> Self {
-        Period::from_radians(x.atan2(y))
+        Angle::from_radians(x.atan2(y))
     }
     /// Reverses the angle
     pub fn inverse(self) -> Self {
-        Period::from_radians(TAU - self.radians())
+        Angle::from_radians(TAU - self.radians())
     }
 
     /// Calculates the approximate atmospheric refraction
@@ -241,7 +235,7 @@ impl Period {
     ///
     /// From <https://www.celestialprogramming.com/snippets/atmosphericrefraction.html>
     pub fn refractdelta(self) -> Self {
-        Period::from_degminsec(
+        Angle::from_degminsec(
             0,
             0,
             (1.02
@@ -253,6 +247,8 @@ impl Period {
     }
     /// Accounts for atmospheric refraction
     ///
+    /// This does not calculate refraction on altitudes under the horizon
+    ///
     /// This should only be used on the altitude value of a horizontal coordinate.
     pub fn refract(self) -> Self {
         if self.to_latitude().degrees() > 0.0 {
@@ -263,7 +259,7 @@ impl Period {
     }
 }
 /// Used in testing
-impl fmt::Debug for Period {
+impl fmt::Debug for Angle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (d, m, s) = self.degminsec();
         // Hubble has a resolution of 0.1", this is more than sufficent
@@ -271,39 +267,39 @@ impl fmt::Debug for Period {
     }
 }
 /// Does not check if arcseconds are equal
-impl PartialEq for Period {
+impl PartialEq for Angle {
     fn eq(&self, other: &Self) -> bool {
         let (d, m, _) = self.degminsec();
         let (d2, m2, _) = other.degminsec();
         d == d2 && m == m2
     }
 }
-impl Add<Period> for Period {
-    type Output = Period;
+impl Add<Angle> for Angle {
+    type Output = Angle;
     /// Addition, For timezones and LST
     fn add(self, x: Self) -> Self {
-        Period::from_radians(self.radians() + x.radians())
+        Angle::from_radians(self.radians() + x.radians())
     }
 }
-impl Sub<Period> for Period {
-    type Output = Period;
+impl Sub<Angle> for Angle {
+    type Output = Angle;
     /// Subtraction, For timezones and LST
     fn sub(self, x: Self) -> Self {
-        Period::from_radians(self.radians() - x.radians())
+        Angle::from_radians(self.radians() - x.radians())
     }
 }
-impl Mul<f64> for Period {
-    type Output = Period;
+impl Mul<f64> for Angle {
+    type Output = Angle;
     /// Multiplication
     fn mul(self, x: f64) -> Self {
-        Period::from_radians(self.radians() * x)
+        Angle::from_radians(self.radians() * x)
     }
 }
-impl Div<f64> for Period {
-    type Output = Period;
+impl Div<f64> for Angle {
+    type Output = Angle;
     /// Multiplication
     fn div(self, x: f64) -> Self {
-        Period::from_radians(self.radians() / x)
+        Angle::from_radians(self.radians() / x)
     }
 }
 
@@ -319,6 +315,7 @@ Continuous Instant in Time
 
 Additional Methods
 * Get the current time: [`Date::now()`]
+* Julian Centuries since J2000: [`Date::centuries()`]
 */
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Date(f64);
@@ -343,10 +340,10 @@ impl Date {
         (self.julian() - 2451545.0) / 36525.0
     }
 
-    /// Returns Year, Month, Day (time is Period::from_decimal(day.fract()))
+    /// Returns Year, Month, Day (time is Angle::from_decimal(day.fract()))
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
-    pub fn calendar(self) -> (i64, u8, u8, Period) {
+    pub fn calendar(self) -> (i64, u8, u8, Angle) {
         let j = self.julian() + 0.5;
         let (i, f) = (j.trunc(), j.fract());
 
@@ -365,12 +362,12 @@ impl Date {
         let y = if m > 2.5 { d - 4716.0 } else { d - 4715.0 };
         let d = b - e + f - (30.6001 * g).trunc();
 
-        (y as i64, m as u8, d as u8, Period::from_turns(d.fract()))
+        (y as i64, m as u8, d as u8, Angle::from_turns(d.fract()))
     }
     /// Takes Year, Month, and Day
     ///
     /// Algorithm from Practical Astronomy with Your Calculator, although similar algorithms exist in other sources
-    pub fn from_calendar(y: i64, m: u8, day: u8, t: Period) -> Self {
+    pub fn from_calendar(y: i64, m: u8, day: u8, t: Angle) -> Self {
         let (year, month) = if m < 3 { (y - 1, m + 12) } else { (y, m) };
 
         Date::from_julian(
@@ -387,11 +384,11 @@ impl Date {
         )
     }
     /// Gets the time of day in a current calendar date
-    pub fn time(self) -> Period {
+    pub fn time(self) -> Angle {
         self.calendar().3
     }
     /// Constructs a date out of a date and a time.
-    pub fn from_time(d: Self, t: Period) -> Self {
+    pub fn from_time(d: Self, t: Angle) -> Self {
         let (y, m, d, _) = d.calendar();
         Self::from_calendar(y, m, d, t)
     }
@@ -440,14 +437,14 @@ mod tests {
     fn test_julian() {
         assert_eq!(
             Date::from_julian(2_446_113.75),
-            Date::from_calendar(1985, 2, 17, Period::from_decimal(6.0))
+            Date::from_calendar(1985, 2, 17, Angle::from_decimal(6.0))
         );
         assert_eq!(
             Date::from_julian(2_446_113.75).calendar(),
-            (1985, 2, 17, Period::from_decimal(6.0))
+            (1985, 2, 17, Angle::from_decimal(6.0))
         );
         assert_eq!(
-            Date::from_calendar(1967, 04, 12, Period::from_turns(0.6))
+            Date::from_calendar(1967, 04, 12, Angle::from_turns(0.6))
                 .time()
                 .decimal(),
             14.400000002235174
@@ -457,48 +454,48 @@ mod tests {
     #[test]
     fn test_calendar() {
         assert_eq!(
-            Date::from_calendar(1000, 10, 20, Period::default()).calendar(),
-            (1000, 10, 20, Period::default())
+            Date::from_calendar(1000, 10, 20, Angle::default()).calendar(),
+            (1000, 10, 20, Angle::default())
         );
         assert_eq!(
-            Date::from_calendar(1000, 14, 20, Period::default()).calendar(),
-            (1001, 2, 20, Period::default())
+            Date::from_calendar(1000, 14, 20, Angle::default()).calendar(),
+            (1001, 2, 20, Angle::default())
         );
     }
 
     #[test]
     fn test_decimalhrs() {
         assert_eq!(
-            Period::from_clock(18, 31, 27.0),
-            Period::from_decimal(18.52417)
+            Angle::from_clock(18, 31, 27.0),
+            Angle::from_decimal(18.52417)
         );
-        assert_eq!(Period::from_decimal(11.75), Period::from_clock(11, 45, 0.0));
+        assert_eq!(Angle::from_decimal(11.75), Angle::from_clock(11, 45, 0.0));
     }
 
     #[test]
     fn test_gst() {
         assert_eq!(
-            Period::from_clock(14, 36, 51.6).gst(Date::from_julian(2_444_351.5)),
-            Period::from_clock(4, 40, 5.23)
+            Angle::from_clock(14, 36, 51.6).gst(Date::from_julian(2_444_351.5)),
+            Angle::from_clock(4, 40, 5.23)
         );
         assert_eq!(
-            Period::from_clock(4, 40, 5.23).ungst(Date::from_julian(2_444_351.5)),
-            Period::from_clock(14, 36, 51.6)
+            Angle::from_clock(4, 40, 5.23).ungst(Date::from_julian(2_444_351.5)),
+            Angle::from_clock(14, 36, 51.6)
         );
     }
 
     #[test]
     fn test_lati() {
         assert_eq!(
-            Period::from_degrees(-25.0).to_latitude().degrees(),
+            Angle::from_degrees(-25.0).to_latitude().degrees(),
             -25.00000000000002 // God I hate floating point
         );
     }
 
     #[test]
     fn test_turn() {
-        assert_eq!(Period::from_turns(0.5), Period::from_degrees(180.0));
-        assert_eq!(Period::from_degrees(180.0), Period::from_turns(0.5));
+        assert_eq!(Angle::from_turns(0.5), Angle::from_degrees(180.0));
+        assert_eq!(Angle::from_degrees(180.0), Angle::from_turns(0.5));
     }
 
     #[test]
@@ -510,12 +507,12 @@ mod tests {
     #[test]
     fn test_refract() {
         assert_eq!(
-            Period::from_degrees(25.0).refractdelta(),
-            Period::from_degminsec(0, 2, 9.2)
+            Angle::from_degrees(25.0).refractdelta(),
+            Angle::from_degminsec(0, 2, 9.2)
         );
         assert_eq!(
-            Period::from_degrees(-25.0).refract(),
-            Period::from_degminsec(-25, 0, 0.0)
+            Angle::from_degrees(-25.0).refract(),
+            Angle::from_degminsec(-25, 0, 0.0)
         );
     }
 }

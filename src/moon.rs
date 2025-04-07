@@ -1,4 +1,15 @@
-//! Lunar Dynamics
+/*! Lunar Dynamics
+
+Contains one main type, `Moon`, with methods for:
+
+* Location
+* Distance
+* Illuminated Fraction
+* Phase Angle
+* Angular Diameter
+* Magnitude
+* Parallax
+*/
 use crate::{coord, sol, time};
 
 /// Structure for the moons orbital properties at an epoch.
@@ -16,15 +27,15 @@ pub struct Moon {
     /// Mean Longitude of the node
     pub n0: f64,
     /// Inclination
-    pub i: time::Period,
+    pub i: time::Angle,
     /// Eccentricity
     pub e: f64,
     /// Semi-major axis
     pub a: f64,
-    /// Angular size at `a` distance
-    pub theta0: time::Period,
-    /// Parallax at `a` distance
-    pub pi0: time::Period,
+    /// Angular size at 1AU
+    pub theta0: time::Angle,
+    /// Parallax at 1AU
+    pub pi0: time::Angle,
 }
 
 /// The moon at epoch January 1980 0.0
@@ -32,28 +43,28 @@ pub const MOON: Moon = Moon {
     epoch: 2444238.5, // January 1980 0.0
     l0: 64.975464,
     n0: 151.950429,
-    i: time::Period::from_degrees(5.145396),
+    i: time::Angle::from_degrees(5.145396),
     e: 0.054900,
     a: 0.002569562, // AU
-    theta0: time::Period::from_degrees(0.0013312900722),
-    pi0: time::Period::from_degrees(0.0024428825934),
+    theta0: time::Angle::from_degrees(0.0013312900722),
+    pi0: time::Angle::from_degrees(0.0024428825934),
 };
 
 impl Moon {
     /// Gets a ton of information about the moon that is used by other functions
     ///
     /// From moontool.c by John Walker
-    fn mooninfo(self, d: time::Date) -> (time::Period, coord::Coord, f64) {
+    fn mooninfo(self, d: time::Date) -> (time::Angle, coord::Coord, f64) {
         /* Calculation of the Sun's position */
         let day = d.julian() - self.epoch; /* Date within epoch */
-        let m = time::Period::from_degrees(((360.0 / 365.2422) * day) + 278.833540 - 282.596403); /* Convert from perigee co-ordinates to epoch 1980.0 */
+        let m = time::Angle::from_degrees(((360.0 / 365.2422) * day) + 278.833540 - 282.596403); /* Convert from perigee co-ordinates to epoch 1980.0 */
         let lambdasun = sol::SUN.location(d).ecliptic(d).0;
 
         // Moon's mean longitude
-        let ml = time::Period::from_degrees(13.1763966 * day + self.l0);
+        let ml = time::Angle::from_degrees(13.1763966 * day + self.l0);
 
         // Moon's mean anomaly
-        let mm = time::Period::from_degrees(ml.degrees() - 0.1114041 * day - 349.383063); /* 349:  Mean longitude of the perigee at the epoch */
+        let mm = time::Angle::from_degrees(ml.degrees() - 0.1114041 * day - 349.383063); /* 349:  Mean longitude of the perigee at the epoch */
 
         // Evection
         let ev = 1.2739 * ((ml - lambdasun) * 2.0 - mm).sin();
@@ -62,28 +73,28 @@ impl Moon {
         let ae = 0.1858 * m.sin();
 
         // Corrected anomaly
-        let mmp = time::Period::from_degrees(mm.degrees() + ev - ae - (0.37 * m.sin()));
+        let mmp = time::Angle::from_degrees(mm.degrees() + ev - ae - (0.37 * m.sin()));
 
         // Correction for the equation of the centre
-        let mec = time::Period::from_degrees(6.2886 * mmp.sin());
+        let mec = time::Angle::from_degrees(6.2886 * mmp.sin());
 
         // Corrected longitude
-        let lp = time::Period::from_degrees(
+        let lp = time::Angle::from_degrees(
             ml.degrees() + ev + (6.2886 * mmp.sin()) - ae + (0.214 * (mmp * 2.0).sin()),
         );
 
         // True longitude
-        let lpp = time::Period::from_degrees(lp.degrees() + (1.3166 * (lp - lambdasun).sin()));
+        let lpp = time::Angle::from_degrees(lp.degrees() + (1.3166 * (lp - lambdasun).sin()));
 
         // Corrected longitude of the node
-        let np = time::Period::from_degrees(
-            time::Period::from_degrees(self.n0 - 0.0529539 * day).degrees() - 0.16 * m.sin(),
+        let np = time::Angle::from_degrees(
+            time::Angle::from_degrees(self.n0 - 0.0529539 * day).degrees() - 0.16 * m.sin(),
         );
 
         let lambdamoon =
-            time::Period::from_radians(((lpp - np).sin() * self.i.cos()).atan2((lpp - np).cos()))
+            time::Angle::from_radians(((lpp - np).sin() * self.i.cos()).atan2((lpp - np).cos()))
                 + np;
-        let betamoon = time::Period::asin((lpp - np).sin() * self.i.sin());
+        let betamoon = time::Angle::asin((lpp - np).sin() * self.i.sin());
 
         let dist = (self.a * (1.0 - self.e * self.e)) / (1.0 + self.e * (mmp + mec).cos());
 
@@ -108,7 +119,7 @@ impl Moon {
     }
 
     /// Returns the phase angle of the moon
-    pub fn phaseangle(self, d: time::Date) -> time::Period {
+    pub fn phaseangle(self, d: time::Date) -> time::Angle {
         self.mooninfo(d).0
     }
     /// Returns the coordinates of the moon
@@ -124,12 +135,12 @@ impl Moon {
     }
 
     /// Returns angular diameter of the planet at current time
-    pub fn angdia(self, d: time::Date) -> time::Period {
+    pub fn angdia(self, d: time::Date) -> time::Angle {
         self.theta0 / self.distance(d)
     }
 
     /// Calculates the moons horizontal parallax
-    pub fn parallax(self, d: time::Date) -> time::Period {
+    pub fn parallax(self, d: time::Date) -> time::Angle {
         self.pi0 / self.distance(d)
     }
 
@@ -148,8 +159,8 @@ mod tests {
         assert_eq!(
             MOON.location(time::Date::from_julian(2460748.554861)),
             coord::Coord::from_equatorial(
-                time::Period::from_degminsec(172, 11, 15.7),
-                time::Period::from_degminsec(3, 59, 15.2)
+                time::Angle::from_degminsec(172, 11, 15.7),
+                time::Angle::from_degminsec(3, 59, 15.2)
             )
         );
     }
@@ -161,7 +172,7 @@ mod tests {
                 2025,
                 03,
                 29,
-                time::Period::default()
+                time::Angle::default()
             )),
             0.002799062630499616
         );
@@ -170,7 +181,7 @@ mod tests {
                 2025,
                 04,
                 09,
-                time::Period::default()
+                time::Angle::default()
             )),
             0.8694887493109439
         );
@@ -179,7 +190,7 @@ mod tests {
                 2024,
                 12,
                 25,
-                time::Period::default()
+                time::Angle::default()
             )),
             -11.366493493867907
         );
@@ -193,7 +204,7 @@ mod tests {
         );
         assert_eq!(
             MOON.angdia(time::Date::from_julian(2460748.467894)),
-            time::Period::from_degrees(0.499999999)
+            time::Angle::from_degrees(0.499999999)
         );
     }
 }
