@@ -7,12 +7,12 @@ of celestial objects, such as the moon, sun, planets, and stars.
 ```
 use pracstro::*;
 let now_date = time::Date::from_calendar(2025, 4, 16.0);
-let now_time = time::Period::from_clock(19, 41, 11.0);
-let my_latitude = time::Period::from_degrees(30.5);
-let my_longitude = time::Period::from_degrees(-110.0);
+let now_time = time::Angle::from_clock(19, 41, 11.0);
+let my_latitude = time::Angle::from_degrees(30.5);
+let my_longitude = time::Angle::from_degrees(-110.0);
 sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
 moon::MOON.phase(now_date).0; // The illuminated fraction of the moons surface
-time::Period::from_degrees(120.0).clock(); // 16h00m00s
+time::Angle::from_degrees(120.0).clock(); // 16h00m00s
 ```
 
 # Structure
@@ -24,7 +24,7 @@ This library contains 4 primary modules, which build upon the ones before them:
 
 Each of these have one or two types that represent a certain kind of data:
 - `Date` - An instant in continuous time.
-- `Period` - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
+- `Angle` - An angle automatically corrected to be between \[0°, 360°\]. Which can also represent a time of day.
 - `Coord` - A pair of angles, representing latitude/longitude on a sphere.
 - `Planet` - A planets orbital properties, along with data required for orbital correction.
 - `Moon` - The moons orbital properties.
@@ -34,17 +34,16 @@ representation of that data. Although lone methods that get certain data for a t
 
 ```
 use pracstro::*;
-time::Period::from_radians(time::Period::from_decimal(16.0).radians()).clock();
+time::Angle::from_radians(time::Angle::from_decimal(16.0).radians()).clock();
 ```
 
 # Benchmarks
 
-| Test           | Mean (n=40000) |
-|----------------|----------------|
-| Control (NOP)  | 0ns            |
-| Current time   | 34ns           |
-| Full ephemeris | 3.406µs        |
-| Moon Phase     | 558ns          |
+| Test           | `pracstro`           | [`astro`](https://crates.io/crates/astro) |
+|----------------|----------------------|---------------------|
+| Moon Phase     | 558ns                | 2,979ns (3µs)       |
+| Jupiter Coords | 601ns                | 70,860ns (70µs)     |
+| Full ephemeris | 3,406ns (3.4µs)      | 1,208,833ns (1.2ms) |
 
 # Goals
 * **Simplicity** - The algorithms in this library should be parsimonious enough to be transcribed into several different languages.

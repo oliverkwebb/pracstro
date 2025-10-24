@@ -47,12 +47,12 @@ impl Coord {
         Coord(x, y)
     }
 
-    /// Azimuth and Altitude, dependent on longitude, Latitude and time
+    /// Azimuth and Altitude, dependent on location and time
     ///
     /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
-    pub fn horizon(self, date: Date, time: Angle, lati: Angle, longi: Angle) -> (Angle, Angle) {
+    pub fn horizon(self, date: Date, lati: Angle, longi: Angle) -> (Angle, Angle) {
         let (ra, de) = self.equatorial();
-        let ha = time.gst(date) + longi - ra;
+        let ha = date.time().gst(date) + longi - ra;
         let alt = Angle::asin(de.sin() * lati.sin() + de.cos() * lati.cos() * ha.cos());
         let azip = Angle::acos((de.sin() - lati.sin() * alt.sin()) / (lati.cos() * alt.cos()));
         let azi = match ha.sin() < 0.0 {
@@ -61,24 +61,17 @@ impl Coord {
         };
         (azi, alt)
     }
-    /// Azimuth and Altitude, dependent on longitude, Latitude and time
+    /// Azimuth and Altitude, dependent on location, and time
     ///
     /// From Practical Astronomy with Your Calculator, Although similar algorithms exist in other sources
-    pub fn from_horizon(
-        azi: Angle,
-        alt: Angle,
-        date: Date,
-        time: Angle,
-        lati: Angle,
-        longi: Angle,
-    ) -> Self {
+    pub fn from_horizon(azi: Angle, alt: Angle, date: Date, lati: Angle, longi: Angle) -> Self {
         let de = Angle::asin(alt.sin() * lati.sin() + alt.cos() * lati.cos() * azi.cos());
         let hap = Angle::acos((alt.sin() - lati.sin() * de.sin()) / (lati.cos() * de.cos()));
         let ha = match azi.sin() < 0.0 {
             true => hap,
             false => Angle::from_degrees(360.0 - hap.degrees()),
         };
-        Coord::from_equatorial(time.gst(date) + longi - ha, de)
+        Coord::from_equatorial(date.time().gst(date) + longi - ha, de)
     }
 
     /// Used in solar calculations, based on the plane of the orbit of the earth
@@ -172,8 +165,7 @@ mod tests {
         );
         assert_eq!(
             arcturus.horizon(
-                Date::from_calendar(2025, 3, 10, Angle::default()),
-                Angle::from_clock(19, 52, 25.0),
+                Date::from_calendar(2025, 3, 10, Angle::from_clock(19, 52, 25.0)),
                 Angle::from_degrees(55.47885),
                 Angle::from_degrees(133.94531)
             ),
@@ -184,8 +176,7 @@ mod tests {
         );
         assert_eq!(
             sirius.horizon(
-                Date::from_calendar(2025, 3, 7, Angle::default()),
-                Angle::from_clock(23, 36, 52.0),
+                Date::from_calendar(2025, 3, 7, Angle::from_clock(23, 36, 52.0)),
                 Angle::from_degrees(5.0),
                 Angle::from_degrees(-1.0)
             ),
@@ -196,8 +187,7 @@ mod tests {
         );
         assert_eq!(
             sirius.horizon(
-                Date::from_calendar(2025, 3, 11, Angle::default()),
-                Angle::from_clock(2, 0, 0.0),
+                Date::from_calendar(2025, 3, 11, Angle::from_clock(2, 0, 0.0)),
                 Angle::from_degrees(44.8714),
                 Angle::from_degrees(-93.20801)
             ),
@@ -210,8 +200,7 @@ mod tests {
             Coord::from_horizon(
                 Angle::from_degminsec(184, 42, 2.3),
                 Angle::from_degminsec(29, 45, 27.2),
-                Date::from_calendar(2025, 3, 11, Angle::default()),
-                Angle::from_clock(2, 0, 0.0),
+                Date::from_calendar(2025, 3, 11, Angle::from_clock(2, 0, 0.0)),
                 Angle::from_degrees(44.8714),
                 Angle::from_degrees(-93.20801)
             ),
@@ -265,20 +254,5 @@ mod tests {
             ),
             star1
         );
-    }
-
-    #[test]
-    fn test_precession() {
-        let star1 = Coord::from_equatorial(
-            Angle::from_clock(3, 8, 10.6),
-            Angle::from_degminsec(40, 57, 20.2),
-        );
-        /*assert_eq!(
-            star1.precess(
-                Date::from_calendar(2000, 1, 1, Angle::default()),
-                Date::from_calendar(2024, 04, 04, Angle::default())
-            ),
-            star1
-        );*/
     }
 }

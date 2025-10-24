@@ -429,6 +429,9 @@ pub fn easter(year: i32) -> (i32, i32) {
     (n, p + 1)
 }
 
+/// Time at epoch J2000
+pub const J2000: Date = Date::from_julian(2451545.0);
+
 #[cfg(test)]
 mod tests {
     use super::*;
