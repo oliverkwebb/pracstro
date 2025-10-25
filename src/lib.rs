@@ -14,7 +14,7 @@ let now_time = time::Angle::from_clock(19, 41, 11.0);
 let my_latitude = time::Angle::from_degrees(30.5);
 let my_longitude = time::Angle::from_degrees(-110.0);
 
-sol::VENUS.location(now_date).horizon(now_date, now_time, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
+sol::VENUS.location(now_date).horizon(now_date, my_latitude, my_longitude); // Get the horizontal coordinates of Venus
 moon::MOON.illumfrac(now_date); // The illuminated fraction of the moons surface
 time::Angle::from_degrees(120.0).clock(); // 16h00m00s
 ```

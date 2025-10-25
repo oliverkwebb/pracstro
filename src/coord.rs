@@ -26,7 +26,7 @@ Pair of angles, Representing "How far up" and "How far round"
 | Equatorial        | Declination (δ)   | Right Ascension (α) |                                 | [`Coord::equatorial()`]| [`Coord::from_equatorial()`]|
 | Horizontal        | Altitude (a)      | Azimuth (A)         | Date, Time, Latitude, Longitude | [`Coord::horizon()`]   | [`Coord::from_horizon()`]   |
 | Ecliptic          | Ecl. Latitude (β) | Ecl. Longitude (λ)  | Date[^1]                        | [`Coord::ecliptic()`]  | [`Coord::from_ecliptic()`]  |
-| Cartesian         | N/A (3D system)   | N/A (3D system)     | Distance                        |                        | [`Coord::from_cartesian()`] |
+| Cartesian         | N/A (3D system)   | N/A (3D system)     | Distance                        | [`Coord::cartesian()`] | [`Coord::from_cartesian()`] |
 
 Additional Methods:
 * Distance between coordinates: [`Coord::dist()`]
@@ -96,9 +96,9 @@ impl Coord {
         Coord::from_equatorial(ra, de)
     }
 
-    /// Convert Rectangular Coordinates to RA/Dec
+    /// Convert 3D Rectangular Coordinates to 2D Polar Coordinates
     ///
-    /// Note how this has no pair function that converts to rectangular coords
+    /// This does not retain the distance to the object
     pub fn from_cartesian(x: f64, y: f64, z: f64) -> Self {
         let (tx, ty, tz) = (x, y, z);
         let r = (tx * tx + ty * ty + tz * tz).sqrt();
@@ -106,6 +106,16 @@ impl Coord {
         let t2 = Angle::from_radians(0.5 * std::f64::consts::PI - (tz / r).acos());
 
         Coord::from_equatorial(l, t2)
+    }
+
+    /// Convert 2D Polar into 3D rectangular, depends on distance
+    pub fn cartesian(self, dist: f64) -> (f64, f64, f64) {
+        let (lat, long) = self.equatorial();
+        let x = dist * lat.sin() * long.cos();
+        let y = dist * lat.sin() * long.sin();
+        let z = dist * lat.cos();
+
+        (x, y, z)
     }
 
     /// Returns the angle between two objects
@@ -170,8 +180,8 @@ mod tests {
                 Angle::from_degrees(133.94531)
             ),
             (
-                Angle::from_degminsec(219, 35, 16.2),
-                Angle::from_degminsec(48, 24, 46.1)
+                Angle::from_degminsec(220, 39, 16.2),
+                Angle::from_degminsec(48, 6, 46.1)
             )
         );
         assert_eq!(
@@ -181,8 +191,8 @@ mod tests {
                 Angle::from_degrees(-1.0)
             ),
             (
-                Angle::from_degminsec(249, 20, 18.2),
-                Angle::from_degminsec(29, 28, 54.8)
+                Angle::from_degminsec(249, 37, 18.2),
+                Angle::from_degminsec(28, 34, 54.8)
             )
         );
         assert_eq!(
@@ -192,13 +202,13 @@ mod tests {
                 Angle::from_degrees(-93.20801)
             ),
             (
-                Angle::from_degminsec(184, 42, 2.3),
+                Angle::from_degminsec(184, 47, 2.3),
                 Angle::from_degminsec(29, 45, 27.2)
             )
         );
         assert_eq!(
             Coord::from_horizon(
-                Angle::from_degminsec(184, 42, 2.3),
+                Angle::from_degminsec(184, 47, 2.3),
                 Angle::from_degminsec(29, 45, 27.2),
                 Date::from_calendar(2025, 3, 11, Angle::from_clock(2, 0, 0.0)),
                 Angle::from_degrees(44.8714),
