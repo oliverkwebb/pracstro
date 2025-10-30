@@ -161,7 +161,7 @@ pub const HALLEY: SegmentedPlanet = SegmentedPlanet {
 };
 /// Mars, Again
 pub const SUPERSURE: SegmentedPlanet = SegmentedPlanet {
-    name: "Jesus Fuck.",
+    name: "Mars Again",
     a: 1.52362660139838,
     e: 0.0934994380486591,
     i: 1.84752995631806,
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_voy2831130() {
-    	return;
+        return;
         let x = SUPERSURE.location(time::Date::from_calendar(
             2025,
             9,

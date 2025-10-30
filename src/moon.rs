@@ -10,7 +10,10 @@ Contains one main type, `Moon`, with methods for:
 * Magnitude
 * Parallax
 */
-use crate::{coord, sol, time};
+use crate::{
+    coord::{self, Coord},
+    sol, time,
+};
 
 /// Structure for the moons orbital properties at an epoch.
 ///
@@ -106,6 +109,12 @@ impl Moon {
             // Distance from earth
             dist,
         )
+    }
+
+    /// Gets the cartesian coordinates of the moon in AU
+    pub fn locationcart(self, d: time::Date) -> (f64, f64, f64) {
+        let (_, crd, dist) = self.mooninfo(d);
+        Coord::cartesian(crd, dist)
     }
 
     /// Returns age of phase in Days

@@ -59,4 +59,7 @@ pub mod sol;
 
 pub mod moon;
 
-pub mod probe;
+pub mod celobj;
+
+// Since the Probe Module is experimental and will be in development until a method of getting comet positions is worked out, it is not shipped with the main library
+//pub mod probe;
