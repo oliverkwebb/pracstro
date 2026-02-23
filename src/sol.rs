@@ -33,7 +33,7 @@ pub struct Sun;
 /// The Sun
 pub const SUN: Sun = Sun;
 impl Sun {
-    /// The rectangular coordinates of the sun relative to the earth, in AU
+    /// The geocentric rectangular coordinates of the sun relative to the earth, in AU
     ///
     /// The inverse of the location of the earth relative to the sun
     pub fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {
@@ -95,7 +95,7 @@ pub struct Planet {
     pub v0: f64,
 }
 impl Planet {
-    /// Returns the location of the planets as rectangular coordinates as relative to the Sun, in AU
+    /// Returns the heliocentric location of the planets as rectangular coordinates as relative to the Sun, in AU
     ///
     /// From <https://ssd.jpl.nasa.gov/planets/approx_pos.html>
     pub fn locationcart(&self, d: time::Date) -> (f64, f64, f64) {

@@ -320,12 +320,16 @@ Additional Methods
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Date(f64);
 impl Date {
+    /// Returns time as Julian Days
+    ///
     /// Direct interface to type
     ///
     /// This is the only function that should directly read the fields of the type
     pub const fn julian(self) -> f64 {
         self.0
     }
+    /// Constructs time from Julian Days
+    ///
     /// Direct interface to type
     ///
     /// This is the only function that should directly write the fields of the type
