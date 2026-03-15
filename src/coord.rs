@@ -111,9 +111,9 @@ impl Coord {
     /// Convert 2D Polar into 3D rectangular, depends on distance
     pub fn cartesian(self, dist: f64) -> (f64, f64, f64) {
         let (lat, long) = self.equatorial();
-        let x = dist * lat.sin() * long.cos();
-        let y = dist * lat.sin() * long.sin();
-        let z = dist * lat.cos();
+        let x = dist * lat.cos() * long.cos();
+        let y = dist * lat.cos() * long.sin();
+        let z = dist * lat.sin();
 
         (x, y, z)
     }
